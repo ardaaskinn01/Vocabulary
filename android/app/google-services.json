@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "53492111582",
+    "project_id": "ingilizce-e826d",
+    "storage_bucket": "ingilizce-e826d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:53492111582:android:405cc48916d455481b0a4f",
+        "android_client_info": {
+          "package_name": "com.aasoft.ingilizce"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSxaYGFhx2f9FX3htIcMyQlP_2oxBmzyo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
