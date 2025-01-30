@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 class CategoryScreen extends StatefulWidget {
   final String category;
@@ -13,6 +15,7 @@ class CategoryScreen extends StatefulWidget {
 }
 
 class _CategoryScreenState extends State<CategoryScreen> {
+  FlutterTts flutterTts = FlutterTts();
   int _currentPage = 0;
   List<int?> selectedAnswers = [];
   List<int> correctAnswers = [];
@@ -28,6 +31,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
   /// Firestore'dan verileri çeker ve listeleri doldurur.
   void _fetchQuestions() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
     final snapshot = await FirebaseFirestore.instance
         .collection(widget.category)
         .orderBy("queue")
@@ -38,11 +44,14 @@ class _CategoryScreenState extends State<CategoryScreen> {
       correctAnswers = documents.map((doc) => doc["answer"] as int).toList();
       selectedAnswers = List.filled(documents.length, null);
 
+      // Kullanıcının verdiği cevapları getir
+      await _fetchUserAnswers(user.uid);
+
       // Tüm görselleri önceden yükle
       await _preloadImages();
 
       setState(() {
-        isLoading = false; // Görseller yüklendiğinde sayfayı aç
+        isLoading = false; // Yükleme tamamlandı
       });
     } else {
       setState(() {
@@ -50,6 +59,31 @@ class _CategoryScreenState extends State<CategoryScreen> {
       });
     }
   }
+
+  Future<void> _fetchUserAnswers(String userId) async {
+    DocumentReference categoryRef = FirebaseFirestore.instance
+        .collection("users")
+        .doc(userId)
+        .collection("results")
+        .doc(widget.category);
+
+    DocumentSnapshot snapshot = await categoryRef.get();
+
+    if (snapshot.exists) {
+      Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+
+      for (int i = 0; i < documents.length; i++) {
+        String key = "soru$i";
+        if (data.containsKey(key)) {
+          bool isCorrect = data[key];
+
+          // Eğer doğruysa `correctAnswers[i]`, yanlışsa farklı bir değer ata
+          selectedAnswers[i] = isCorrect ? correctAnswers[i] : (correctAnswers[i] == 1 ? 2 : 1);
+        }
+      }
+    }
+  }
+
 
   /// Google Drive dosya linkini görsel olarak yüklenebilir hale getirir.
   String convertGoogleDriveUrl(String url) {
@@ -80,11 +114,54 @@ class _CategoryScreenState extends State<CategoryScreen> {
     await Future.wait(futures);
   }
 
-  void checkAnswer(int answerIndex, int index) {
+  void checkAnswer(int answerIndex, int index) async {
     setState(() {
-      // Cevap seçildiğinde seçilen cevapları güncelle
-      selectedAnswers[index] = answerIndex == correctAnswers[index] ? correctAnswers[index] : answerIndex;
+      if (selectedAnswers[index] == null) {
+        selectedAnswers[index] = answerIndex;
+      }
     });
+
+    // Kullanıcının UID’sini al
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return; // Kullanıcı giriş yapmamışsa işlemi yapma
+
+    String userId = user.uid;
+    String categoryName = widget.category; // Kategori adı
+
+    // Doğru olup olmadığını kontrol et
+    bool isCorrect = (answerIndex == correctAnswers[index]);
+
+    // Firestore referanslarını ayarla
+    DocumentReference userRef =
+    FirebaseFirestore.instance.collection("users").doc(userId);
+
+    DocumentReference categoryRef = userRef.collection("results").doc(categoryName);
+
+    // Firestore'a ekleme
+    await categoryRef.set({
+      "soru$index": isCorrect, // Örn: "soru1": true, "soru2": false
+    }, SetOptions(merge: true)); // Merge kullanarak sadece güncellenecek alanları değiştirelim.
+  }
+
+  Future<void> _speak(String text) async {
+    if (text.isEmpty) {
+      print("Boş metin seslendirilemez.");
+      return;
+    }
+
+    print("Seslendiriliyor: $text");
+
+    await flutterTts.setLanguage("en-US"); // Dil ayarla
+    await flutterTts.setPitch(1.0); // Ses tonu normal
+    await flutterTts.awaitSpeakCompletion(true); // Konuşmanın bitmesini bekle
+    await flutterTts.speak(text);
+  }
+
+
+  @override
+  void dispose() {
+    flutterTts.stop(); // Sayfa kapatılırken sesi durdur
+    super.dispose();
   }
 
   @override
@@ -104,6 +181,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
           final doc = documents[index];
           final rawUrl = doc["url"] ?? "";
           final imageUrl = convertGoogleDriveUrl(rawUrl);
+          final bool isAnswer = doc["isAnswer"] ?? false;
 
           return Center(
             child: Card(
@@ -129,9 +207,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
                           },
                         ),
                       ),
-                      buildAnswerArea(1, context, 0.203, index),
-                      buildAnswerArea(2, context, 0.11, index),
-                      buildAnswerArea(3, context, 0.28, index),
+                      if (isAnswer) ...[
+                        buildAnswerArea(1, context, 0.19, index),
+                        buildAnswerArea(2, context, 0.107, index),
+                        buildAnswerArea(3, context, 0.272, index),
+                      ],
                     ],
                   ),
                 ),
@@ -177,39 +257,78 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
 
   Widget buildAnswerArea(int answerIndex, BuildContext context, double bottom, int index) {
-    return Positioned(
+    // Firestore'dan dökümanı al ve Map olarak işle
+    Map<String, dynamic>? data = documents[index].data() as Map<String, dynamic>?;
+
+    if (data == null) return const SizedBox.shrink();
+
+    String? word;
+    if (answerIndex == 1) {
+      word = data["word"];
+    } else if (answerIndex == 2) {
+      word = data["word2"];
+    } else if (answerIndex == 3 && data.containsKey("word3")) {
+      word = data["word3"];
+    }
+
+    // 3. seçenek (word3) yoksa, hizalamayı değiştir
+    bool hasThirdOption = data.containsKey("word3") && data["word3"] != null;
+    if (!hasThirdOption) {
+      if (answerIndex == 1) bottom = 0.2; // 3. şık yoksa, 1. şıkkın hizasını düzelt
+    }
+
+    // Eğer "word3" yoksa üçüncü şık gösterilmeyecek
+    bool shouldShowOption = answerIndex < 3 || (answerIndex == 3 && word != null);
+
+    return shouldShowOption
+        ? Positioned(
       left: MediaQuery.of(context).size.width * 0.156,
       bottom: MediaQuery.of(context).size.height * bottom,
       width: MediaQuery.of(context).size.width * 0.67,
       height: MediaQuery.of(context).size.height * 0.067,
       child: GestureDetector(
         onTap: () {
-          checkAnswer(answerIndex, index); // Seçim yapıldığında cevabı kontrol et
+          checkAnswer(answerIndex, index);
         },
         child: Stack(
           children: [
-            // Burada, boş bir alan bırakıyoruz
+            // Arka plan
             Container(
               color: Colors.transparent,
             ),
-            // Sadece seçilen cevabın doğru veya yanlış olduğunu göster
-            if (selectedAnswers[index] == answerIndex) // Seçilen cevaba bakıyoruz
+            // Dinleme Butonu (Sesli Telaffuz)
+            if (word != null)
+              Positioned(
+                left: 0,
+                top: 2,
+                child: IconButton(
+                  icon: Icon(Icons.volume_up, color: Colors.blue, size: 28),
+                  onPressed: () {
+                    if (word != null && word.isNotEmpty) {
+                      _speak(word);
+                    } else {
+                      print("Kelime boş olduğu için seslendirme yapılmadı.");
+                    }
+                  },
+                ),
+              ),
+            // Doğru/yanlış ikonları
+            if (selectedAnswers[index] == answerIndex)
               Positioned(
                 right: 7,
                 top: 14,
                 child: Icon(
                   selectedAnswers[index] == correctAnswers[index]
-                      ? Icons.check_circle_outline // Doğru cevap
-                      : Icons.cancel_outlined, // Yanlış cevap
-                  color: selectedAnswers[index] == correctAnswers[index]
-                      ? Colors.green // Doğru cevap için yeşil
-                      : Colors.red, // Yanlış cevap için kırmızı
+                      ? Icons.check_circle_outline
+                      : Icons.cancel_outlined,
+                  color: selectedAnswers[index] == correctAnswers[index] ? Colors.green : Colors.red,
                   size: 30,
                 ),
               ),
           ],
         ),
       ),
-    );
+    )
+        : const SizedBox.shrink(); // Eğer üçüncü şık yoksa, boş alan göstermesin
   }
 }
