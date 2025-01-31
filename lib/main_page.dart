@@ -26,7 +26,17 @@ class _MainPageState extends State<MainPage> {
   @override
   void initState() {
     super.initState();
+    _getUserId();
     _fetchUserResultsStream();
+  }
+
+  void _getUserId() {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      setState(() {
+        userId = user.uid;
+      });
+    }
   }
 
   /// Kullanıcının UID'sini al ve Firestore'dan sonuçları getir.
@@ -42,13 +52,16 @@ class _MainPageState extends State<MainPage> {
       for (var doc in snapshot.docs) {
         Map<String, dynamic> data = doc.data();
         int correctAnswers = data.values.where((value) => value == true).length;
-        int totalQuestions = data["toplam"] ?? data.length;
+        int totalQuestions = data.length;
 
         tempResults[doc.id] = {
           "correct": correctAnswers,
           "total": totalQuestions,
         };
       }
+      setState(() {
+        categoryResults = tempResults;
+      });
       return tempResults;
     });
   }
@@ -82,9 +95,6 @@ class _MainPageState extends State<MainPage> {
       body: StreamBuilder<Map<String, Map<String, dynamic>>>(
         stream: _fetchUserResultsStream(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
 
           if (snapshot.hasError) {
             return Center(child: Text("Hata oluştu: ${snapshot.error}"));
@@ -100,8 +110,8 @@ class _MainPageState extends State<MainPage> {
               children: [
                 buildCategorySection(context, "Başlangıç Seviyesi", [
                   buildCategoryCard(context, "Family Tree", "family tree"),
-                  buildCategoryCard(context, "Colors", "colors"),
-                  buildCategoryCard(context, "Numbers", "numbers"),
+                  buildCategoryCard(context, "Colors", "colors", isLocked: true),
+                  buildCategoryCard(context, "Numbers", "numbers", isLocked: true),
                 ]),
                 buildCategorySection(context, "Orta Seviye", []),
                 buildCategorySection(context, "İleri Seviye", []),
@@ -146,30 +156,46 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Widget buildCategoryCard(BuildContext context, String title, String category) {
+  Widget buildCategoryCard(BuildContext context, String title, String category, {bool isLocked = false}) {
     int correct = categoryResults[category]?["correct"] ?? 0;
     int solved = categoryResults[category]?["total"] ?? 0;
-    int total = categoryTotalQuestions[category]!;
+    int total = categoryTotalQuestions[category] ?? 0;
 
-    String statusText = "Henüz test çözülmedi";
+    // Varsayılan kilit durumu
+    bool categoryLocked = isLocked;
+
+    // Eğer önceki kategori tamamlandıysa kilit kalkmalı
+    if (category == "colors" && (categoryResults["family tree"]?["total"] ?? 0) == categoryTotalQuestions["family tree"]) {
+      categoryLocked = false;
+    }
+    if (category == "numbers" && (categoryResults["colors"]?["total"] ?? 0) == categoryTotalQuestions["colors"]) {
+      categoryLocked = false;
+    }
+
+    // Kilitliyse "Henüz kilidi açılmadı" yazısını göster
+    String statusText = categoryLocked ? "Henüz kilidi açılmadı" : "Henüz test çözülmedi";
     Color statusColor = Colors.grey;
 
-    if (correct > 0 && solved < total) {
-      statusText = "$correct/$total Doğru (Devam Ediyor)";
-      statusColor = Colors.amber;
-    } else if (solved == total) {
-      statusText = "$correct/$total Doğru (Tamamlandı)";
-      statusColor = Colors.green;
+    if (!categoryLocked) {
+      if (solved > 0 && solved < total) {
+        statusText = "$correct/$solved Doğru (Devam Ediyor)";
+        statusColor = Colors.amber;
+      } else if (solved == total) {
+        statusText = "$correct/$solved Doğru (Tamamlandı)";
+        statusColor = Colors.green;
+      }
     }
 
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CategoryScreen(category: category),
-          ),
-        );
+        if (!categoryLocked) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CategoryScreen(category: category),
+            ),
+          );
+        }
       },
       child: Card(
         elevation: 1,
@@ -195,25 +221,26 @@ class _MainPageState extends State<MainPage> {
                 statusText,
                 style: TextStyle(fontSize: 16, color: statusColor),
               ),
-              trailing: const Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.black,
+              trailing: Icon(
+                categoryLocked ? Icons.lock : Icons.arrow_forward_ios,
+                color: categoryLocked ? Colors.red : Colors.black,
                 size: 24,
               ),
             ),
-            // Sıfırlama butonu ekleniyor
-            TextButton(
-              onPressed: () {
-                resetCategoryResults(category);
-              },
-              child: const Text(
-                "Sıfırla",
-                style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
+            // Eğer kategori kilitliyse, "Sıfırla" butonunu göstermiyoruz
+            if (!categoryLocked)
+              TextButton(
+                onPressed: () {
+                  resetCategoryResults(category);
+                },
+                child: const Text(
+                  "Sıfırla",
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
