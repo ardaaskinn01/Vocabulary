@@ -1,9 +1,11 @@
 import 'dart:async';
-
+import 'dart:io';
+import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:path_provider/path_provider.dart';
 
 class CategoryScreen extends StatefulWidget {
   final String category;
@@ -27,6 +29,31 @@ class _CategoryScreenState extends State<CategoryScreen> {
   void initState() {
     super.initState();
     _fetchQuestions();
+  }
+
+  Future<File> _downloadAndSaveImage(String url, String fileName) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = '${directory.path}/$fileName';
+    final file = File(filePath);
+
+    if (await file.exists()) {
+      return file; // Dosya zaten varsa direkt dön
+    }
+
+    final response = await http.get(Uri.parse(url));
+    await file.writeAsBytes(response.bodyBytes);
+    return file;
+  }
+
+  Future<File?> _getCachedImage(String fileName) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = '${directory.path}/$fileName';
+    final file = File(filePath);
+
+    if (await file.exists()) {
+      return file;
+    }
+    return null;
   }
 
   /// Firestore'dan verileri çeker ve listeleri doldurur.
@@ -99,18 +126,21 @@ class _CategoryScreenState extends State<CategoryScreen> {
   Future<void> _preloadImages() async {
     List<Future<void>> futures = [];
 
-    for (var doc in documents) {
+    for (var i = 0; i < documents.length; i++) {
+      final doc = documents[i];
       final rawUrl = doc["url"] ?? "";
       final imageUrl = convertGoogleDriveUrl(rawUrl);
+      final fileName = '${widget.category}_$i.jpg'; // Kategoriye göre dosya ismi
 
       futures.add(
-        precacheImage(NetworkImage(imageUrl), context).catchError((e) {
-          print("Görsel yüklenirken hata oluştu: $e");
+        _downloadAndSaveImage(imageUrl, fileName).then((file) {
+          print("Görsel kaydedildi: ${file.path}");
+        }).catchError((e) {
+          print("Görsel kaydedilirken hata oluştu: $e");
         }),
       );
     }
 
-    // Bütün işlemleri **aynı anda başlatıp** bekler
     await Future.wait(futures);
   }
 
@@ -197,20 +227,26 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   child: Stack(
                     children: [
                       Positioned.fill(
-                        child: Image(
-                          image: NetworkImage(imageUrl),
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Center(
-                              child: Icon(Icons.broken_image, size: 100),
-                            );
+                        child: FutureBuilder<File?>(
+                          future: _getCachedImage('${widget.category}_$index.jpg'),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return CircularProgressIndicator();
+                            } else if (snapshot.hasData && snapshot.data != null) {
+                              return Image.file(
+                                snapshot.data!,
+                                fit: BoxFit.contain,
+                              );
+                            } else {
+                              return Icon(Icons.broken_image);
+                            }
                           },
                         ),
                       ),
                       if (isAnswer) ...[
-                        buildAnswerArea(1, context, 0.19, index),
-                        buildAnswerArea(2, context, 0.107, index),
-                        buildAnswerArea(3, context, 0.272, index),
+                        buildAnswerArea(1, context, 0.193, index),
+                        buildAnswerArea(2, context, 0.11, index),
+                        buildAnswerArea(3, context, 0.275, index),
                       ],
                     ],
                   ),
@@ -274,7 +310,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
     // 3. seçenek (word3) yoksa, hizalamayı değiştir
     bool hasThirdOption = data.containsKey("word3") && data["word3"] != null;
     if (!hasThirdOption) {
-      if (answerIndex == 1) bottom = 0.2; // 3. şık yoksa, 1. şıkkın hizasını düzelt
+      if (answerIndex == 1) bottom = 0.203; // 3. şık yoksa, 1. şıkkın hizasını düzelt
     }
 
     // Eğer "word3" yoksa üçüncü şık gösterilmeyecek

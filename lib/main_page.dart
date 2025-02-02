@@ -20,7 +20,16 @@ class _MainPageState extends State<MainPage> {
   final Map<String, int> categoryTotalQuestions = {
     "family tree": 10,
     "colors": 11,
-    "numbers": 11,
+    "numbers": 20,
+    "fruits": 13,
+  };
+
+  // Kategorilerin kilidinin bir kez açılıp açılmadığını takip eden harita
+  final Map<String, bool> categoryUnlockedStatus = {
+    "family tree": false,
+    "colors": false,
+    "numbers": false,
+    "fruits": false,
   };
 
   @override
@@ -95,7 +104,6 @@ class _MainPageState extends State<MainPage> {
       body: StreamBuilder<Map<String, Map<String, dynamic>>>(
         stream: _fetchUserResultsStream(),
         builder: (context, snapshot) {
-
           if (snapshot.hasError) {
             return Center(child: Text("Hata oluştu: ${snapshot.error}"));
           }
@@ -112,6 +120,7 @@ class _MainPageState extends State<MainPage> {
                   buildCategoryCard(context, "Family Tree", "family tree"),
                   buildCategoryCard(context, "Colors", "colors", isLocked: true),
                   buildCategoryCard(context, "Numbers", "numbers", isLocked: true),
+                  buildCategoryCard(context, "Fruits", "fruits", isLocked: true),
                 ]),
                 buildCategorySection(context, "Orta Seviye", []),
                 buildCategorySection(context, "İleri Seviye", []),
@@ -161,14 +170,23 @@ class _MainPageState extends State<MainPage> {
     int solved = categoryResults[category]?["total"] ?? 0;
     int total = categoryTotalQuestions[category] ?? 0;
 
-    // Varsayılan kilit durumu
+    // Kilit durumunu kontrol et
     bool categoryLocked = isLocked;
 
-    // Eğer önceki kategori tamamlandıysa kilit kalkmalı
+    // Eğer önceki kategori tamamlandıysa ve kilit durumu daha önce açılmamışsa, kilidi aç
     if (category == "colors" && (categoryResults["family tree"]?["total"] ?? 0) == categoryTotalQuestions["family tree"]) {
-      categoryLocked = false;
+      categoryUnlockedStatus["colors"] = true;
     }
     if (category == "numbers" && (categoryResults["colors"]?["total"] ?? 0) == categoryTotalQuestions["colors"]) {
+      categoryUnlockedStatus["numbers"] = true;
+    }
+
+    if (category == "fruits" && (categoryResults["numbers"]?["total"] ?? 0) == categoryTotalQuestions["numbers"]) {
+      categoryUnlockedStatus["fruits"] = true;
+    }
+
+    // Eğer kilit durumu bir kez açıldıysa, artık kilitli olmamalı
+    if (categoryUnlockedStatus[category] == true) {
       categoryLocked = false;
     }
 
