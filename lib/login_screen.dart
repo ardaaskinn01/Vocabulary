@@ -15,6 +15,27 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    _checkCurrentUser();
+  }
+
+  void _checkCurrentUser() async {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // Kullanıcı daha önce giriş yapmışsa, ana sayfaya yönlendir
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const MainPage()),
+          );
+        }
+      }
+    });
+  }
+
   void _login() async {
     String username = _emailController.text.trim();
     String email = "$username@example.com";
@@ -22,10 +43,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (username.isNotEmpty && password.isNotEmpty) {
       try {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
+        UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: email,
           password: password,
         );
+
+        // Kullanıcı giriş yaptığında cihaz bilgisini Firestore'a kaydet
+        await FirebaseFirestore.instance
+            .collection("users")
+            .doc(userCredential.user!.uid)
+            .update({
+          "devices": FieldValue.arrayUnion([_getDeviceInfo()]),
+          "lastLogin": FieldValue.serverTimestamp(),
+        });
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MainPage()),
@@ -42,15 +73,28 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _showRegisterDialog() {
-    final TextEditingController registerNameController =
-    TextEditingController();
-    final TextEditingController registerEmailController =
-    TextEditingController();
-    final TextEditingController registerPasswordController =
-    TextEditingController();
+  Map<String, String> _getDeviceInfo() {
+    // Cihaz bilgilerini topla (örneğin, cihaz modeli, işletim sistemi, vs.)
+    return {
+      "deviceModel": "Example Model", // Bu bilgileri gerçek cihaz bilgileriyle değiştirin
+      "os": "Android/iOS",
+      "lastLogin": DateTime.now().toString(),
+    };
+  }
 
-    showDialog(
+  bool _isLoading = false;
+
+  void _showRegisterDialog() async {
+    if (_isLoading || !mounted) return; // İşlem devam ediyorsa veya widget dispose edilmişse, işlemi durdur
+    setState(() {
+      _isLoading = true;
+    });
+
+    final TextEditingController registerNameController = TextEditingController();
+    final TextEditingController registerEmailController = TextEditingController();
+    final TextEditingController registerPasswordController = TextEditingController();
+
+    await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -94,14 +138,11 @@ class _LoginScreenState extends State<LoginScreen> {
               if (name.isNotEmpty && username.isNotEmpty && password.isNotEmpty) {
                 try {
                   String email = "$username@example.com";
-                  // Firebase Auth ile kullanıcı oluşturma
-                  UserCredential userCredential =
-                  await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                  UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
                     email: email,
                     password: password,
                   );
 
-                  // Firestore'a kullanıcıyı ekleme
                   await FirebaseFirestore.instance
                       .collection("users")
                       .doc(userCredential.user!.uid)
@@ -111,34 +152,40 @@ class _LoginScreenState extends State<LoginScreen> {
                     "createdAt": FieldValue.serverTimestamp(),
                   });
 
-                  print("Kayıt başarılı ve Firestore'a eklendi!");
-                  Navigator.pop(context); // Pop-up kapatılır.
+                  if (!mounted) return; // Widget dispose edilmişse, işlemi durdur
+                  Navigator.pop(context); // Dialog'u kapat
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Kayıt başarılı!")),
                   );
                 } catch (e) {
-                  print("Kayıt başarısız: $e");
+                  if (!mounted) return; // Widget dispose edilmişse, işlemi durdur
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text("Kayıt başarısız: $e")),
                   );
                 }
               } else {
+                if (!mounted) return; // Widget dispose edilmişse, işlemi durdur
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content:
-                      Text("İsim, kullanıcı adı veya şifre boş bırakılamaz.")),
+                  const SnackBar(content: Text("İsim, kullanıcı adı veya şifre boş bırakılamaz.")),
                 );
               }
             },
             child: const Text("Kayıt Ol"),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              Navigator.pop(context); // Dialog'u kapat
+            },
             child: const Text("İptal"),
           ),
         ],
       ),
     );
+
+    if (!mounted) return; // Widget dispose edilmişse, işlemi durdur
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   @override

@@ -145,10 +145,13 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   void checkAnswer(int answerIndex, int index) async {
+    // Eğer bir şık zaten seçilmişse, işlemi yapma
+    if (selectedAnswers[index] != null) {
+      return;
+    }
+
     setState(() {
-      if (selectedAnswers[index] == null) {
-        selectedAnswers[index] = answerIndex;
-      }
+      selectedAnswers[index] = answerIndex;
     });
 
     // Kullanıcının UID’sini al
@@ -244,7 +247,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                         ),
                       ),
                       if (isAnswer) ...[
-                        buildAnswerArea(1, context, 0.193, index),
+                        buildAnswerArea(1, context, 0.195, index),
                         buildAnswerArea(2, context, 0.11, index),
                         buildAnswerArea(3, context, 0.275, index),
                       ],
@@ -310,7 +313,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
     // 3. seçenek (word3) yoksa, hizalamayı değiştir
     bool hasThirdOption = data.containsKey("word3") && data["word3"] != null;
     if (!hasThirdOption) {
-      if (answerIndex == 1) bottom = 0.203; // 3. şık yoksa, 1. şıkkın hizasını düzelt
+      if (answerIndex == 1) bottom = 0.205; // 3. şık yoksa, 1. şıkkın hizasını düzelt
     }
 
     // Eğer "word3" yoksa üçüncü şık gösterilmeyecek
@@ -323,9 +326,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
       width: MediaQuery.of(context).size.width * 0.67,
       height: MediaQuery.of(context).size.height * 0.067,
       child: GestureDetector(
-        onTap: () {
+        onTap: selectedAnswers[index] == null
+            ? () {
           checkAnswer(answerIndex, index);
-        },
+        }
+            : null, // Eğer bir şık seçilmişse, onTap'i devre dışı bırak
         child: Stack(
           children: [
             // Arka plan
@@ -357,7 +362,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   selectedAnswers[index] == correctAnswers[index]
                       ? Icons.check_circle_outline
                       : Icons.cancel_outlined,
-                  color: selectedAnswers[index] == correctAnswers[index] ? Colors.green : Colors.red,
+                  color: selectedAnswers[index] == correctAnswers[index]
+                      ? Colors.green
+                      : Colors.red,
                   size: 30,
                 ),
               ),

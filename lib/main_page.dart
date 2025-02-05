@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'category_screen.dart';
+import 'login_screen.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -21,7 +22,7 @@ class _MainPageState extends State<MainPage> {
     "family tree": 10,
     "colors": 11,
     "numbers": 20,
-    "fruits": 13,
+    "fruits": 20,
   };
 
   // Kategorilerin kilidinin bir kez açılıp açılmadığını takip eden harita
@@ -89,6 +90,18 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
+  Future<void> _logout() async {
+    try {
+      await _auth.signOut(); // Firebase Auth ile oturumu kapat
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()), // Giriş ekranına yönlendir
+      );
+    } catch (e) {
+      print("Çıkış yapma hatası: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -100,6 +113,13 @@ class _MainPageState extends State<MainPage> {
         centerTitle: true,
         backgroundColor: Colors.orangeAccent,
         elevation: 4,
+        actions: [
+          // Çıkış yapma butonu
+          IconButton(
+            icon: const Icon(Icons.exit_to_app, color: Colors.red),
+            onPressed: _logout, // Çıkış yapma fonksiyonunu tetikle
+          ),
+        ],
       ),
       body: StreamBuilder<Map<String, Map<String, dynamic>>>(
         stream: _fetchUserResultsStream(),
