@@ -17,6 +17,20 @@ class _MainPageState extends State<MainPage> {
   String? userId;
   Map<String, Map<String, dynamic>> categoryResults = {};
 
+  Future<void> saveUnlockedCategory(String category) async {
+    await _firestore.collection("users").doc(userId).collection("unlockedCategories").doc(category).set({
+      "unlocked": true,
+    });
+  }
+
+  Future<void> fetchUnlockedCategories() async {
+    final snapshot = await _firestore.collection("users").doc(userId).collection("unlockedCategories").get();
+    for (var doc in snapshot.docs) {
+      categoryUnlockedStatus[doc.id] = doc["unlocked"] ?? false;
+    }
+    setState(() {});
+  }
+
   // Her kategoriye özel toplam soru sayısı
   final Map<String, int> categoryTotalQuestions = {
     "family tree": 10,
@@ -37,6 +51,7 @@ class _MainPageState extends State<MainPage> {
   void initState() {
     super.initState();
     _getUserId();
+    fetchUnlockedCategories();
     _fetchUserResultsStream();
   }
 
@@ -195,14 +210,23 @@ class _MainPageState extends State<MainPage> {
 
     // Eğer önceki kategori tamamlandıysa ve kilit durumu daha önce açılmamışsa, kilidi aç
     if (category == "colors" && (categoryResults["family tree"]?["total"] ?? 0) == categoryTotalQuestions["family tree"]) {
-      categoryUnlockedStatus["colors"] = true;
+      if (!categoryUnlockedStatus["colors"]!) {
+        categoryUnlockedStatus["colors"] = true;
+        saveUnlockedCategory("colors");
+      }
     }
     if (category == "numbers" && (categoryResults["colors"]?["total"] ?? 0) == categoryTotalQuestions["colors"]) {
-      categoryUnlockedStatus["numbers"] = true;
+      if (!categoryUnlockedStatus["numbers"]!) {
+        categoryUnlockedStatus["numbers"] = true;
+        saveUnlockedCategory("numbers");
+      }
     }
 
     if (category == "fruits" && (categoryResults["numbers"]?["total"] ?? 0) == categoryTotalQuestions["numbers"]) {
-      categoryUnlockedStatus["fruits"] = true;
+      if (!categoryUnlockedStatus["fruits"]!) {
+        categoryUnlockedStatus["fruits"] = true;
+        saveUnlockedCategory("fruits");
+      }
     }
 
     // Eğer kilit durumu bir kez açıldıysa, artık kilitli olmamalı
