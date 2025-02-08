@@ -48,7 +48,6 @@ class _LoginScreenState extends State<LoginScreen> {
           password: password,
         );
 
-        // Kullanıcı giriş yaptığında cihaz bilgisini Firestore'a kaydet
         await FirebaseFirestore.instance
             .collection("users")
             .doc(userCredential.user!.uid)
@@ -57,21 +56,26 @@ class _LoginScreenState extends State<LoginScreen> {
           "lastLogin": FieldValue.serverTimestamp(),
         });
 
+        if (!mounted) return; // Widget dispose edildiyse işlemi durdur
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MainPage()),
         );
       } catch (e) {
+        if (!mounted) return; // Widget dispose edildiyse işlemi durdur
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Giriş başarısız: $e")),
         );
       }
     } else {
+      if (!mounted) return; // Widget dispose edildiyse işlemi durdur
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Kullanıcı adı veya şifre boş bırakılamaz.")),
       );
     }
   }
+
 
   Map<String, String> _getDeviceInfo() {
     // Cihaz bilgilerini topla (örneğin, cihaz modeli, işletim sistemi, vs.)
@@ -182,7 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
 
-    if (!mounted) return; // Widget dispose edilmişse, işlemi durdur
+    if (!mounted) return;
     setState(() {
       _isLoading = false;
     });

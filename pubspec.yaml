@@ -67,6 +67,4 @@ flutter:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/images/bg.jpg" # Logonun tam yolu
-  adaptive_icon_background: "#808080"
-  adaptive_icon_foreground: "assets/images/bg.jpg" # Android adaptive icon için
+  image_path: "assets/images/bg.jpg" # Logonun tam yolu # Android adaptive icon için
