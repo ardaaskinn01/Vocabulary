@@ -7,9 +7,13 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    print("Firebase initialization error: $e");
+  }
   runApp(const MyApp());
 }
 
@@ -44,24 +48,26 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _checkCurrentUser() async {
-    await Future.delayed(const Duration(seconds: 2)); // Splash ekranının 2 saniye gösterilmesi
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      // Kullanıcı giriş yapmışsa, MainPage'e yönlendir
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainPage()),
-        );
+    await Future.delayed(const Duration(seconds: 2));
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const MainPage()),
+          );
+        }
+      } else {
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+          );
+        }
       }
-    } else {
-      // Kullanıcı giriş yapmamışsa, LoginScreen'e yönlendir
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-        );
-      }
+    } catch (e) {
+      print("Firebase Auth error: $e");
     }
   }
 
