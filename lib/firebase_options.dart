@@ -64,7 +64,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '53492111582',
     projectId: 'ingilizce-e826d',
     storageBucket: 'ingilizce-e826d.firebasestorage.app',
-    iosBundleId: 'com.example.ingilizce',
+    iosBundleId: 'com.ufukkoca.LearningEnglishVocabulary',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
