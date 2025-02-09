@@ -15,26 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    _checkCurrentUser();
-  }
-
-  void _checkCurrentUser() async {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        // Kullanıcı daha önce giriş yapmışsa, ana sayfaya yönlendir
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const MainPage()),
-          );
-        }
-      }
-    });
-  }
+  bool _isLoading = false;
 
   void _login() async {
     String username = _emailController.text.trim();
@@ -76,7 +57,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-
   Map<String, String> _getDeviceInfo() {
     // Cihaz bilgilerini topla (örneğin, cihaz modeli, işletim sistemi, vs.)
     return {
@@ -85,8 +65,6 @@ class _LoginScreenState extends State<LoginScreen> {
       "lastLogin": DateTime.now().toString(),
     };
   }
-
-  bool _isLoading = false;
 
   void _showRegisterDialog() async {
     if (_isLoading || !mounted) return; // İşlem devam ediyorsa veya widget dispose edilmişse, işlemi durdur
