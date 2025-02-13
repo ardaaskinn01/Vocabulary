@@ -38,7 +38,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
     "family tree": 10,
     "colors": 11,
     "numbers": 20,
-    "fruits": 19,
+    "fruits": 20,
     "animals": 30,
     "vegetables": 20,
     "adjectives": 19,
