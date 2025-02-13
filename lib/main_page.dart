@@ -1,21 +1,23 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:ingilizce/tutorial.dart';
 import 'category_screen.dart';
 import 'login_screen.dart';
 
 class MainPage extends StatefulWidget {
-  const MainPage({super.key});
+  const MainPage({Key? key}) : super(key: key);
 
   @override
   _MainPageState createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage> {
+class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   String? userId;
   Map<String, Map<String, dynamic>> categoryResults = {};
+  late TabController _tabController;
 
   Future<void> saveUnlockedCategory(String category) async {
     await _firestore.collection("users").doc(userId).collection("unlockedCategories").doc(category).set({
@@ -36,7 +38,12 @@ class _MainPageState extends State<MainPage> {
     "family tree": 10,
     "colors": 11,
     "numbers": 20,
-    "fruits": 20,
+    "fruits": 19,
+    "animals": 30,
+    "vegetables": 20,
+    "adjectives": 19,
+    "bodyparts": 22,
+    "clothes": 24
   };
 
   // Kategorilerin kilidinin bir kez açılıp açılmadığını takip eden harita
@@ -45,17 +52,28 @@ class _MainPageState extends State<MainPage> {
     "colors": false,
     "numbers": false,
     "fruits": false,
+    "animals": false,
+    "vegetables": false,
+    "adjectives": false,
+    "bodyparts": false,
+    "clothes": false
   };
 
   @override
   void initState() {
     super.initState();
-    _getUserId();
-    fetchUnlockedCategories();
-    _fetchUserResultsStream();
+    _tabController = TabController(length: 3, vsync: this);
+    Future.microtask(() async {
+      await _getUserId();  // Önce userId atanmalı
+      if (userId != null) {
+        print(userId);
+        await fetchUnlockedCategories();
+        _fetchUserResultsStream();
+      }
+    });
   }
 
-  void _getUserId() {
+  _getUserId() {
     User? user = _auth.currentUser;
     if (user != null) {
       setState(() {
@@ -118,85 +136,157 @@ class _MainPageState extends State<MainPage> {
   }
 
   @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Kategoriler",
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
+        title: const Text("Ana Sayfa"),
         backgroundColor: Colors.orangeAccent,
+        centerTitle: true,
         elevation: 4,
         actions: [
           // Çıkış yapma butonu
           IconButton(
             icon: const Icon(Icons.exit_to_app, color: Colors.red),
-            onPressed: _logout, // Çıkış yapma fonksiyonunu tetikle
+            onPressed: _logout,
           ),
         ],
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          tabs: const [
+            Tab(text: "Başlangıç"),
+            Tab(text: "Orta"),
+            Tab(text: "İleri"),
+          ],
+        ),
       ),
-      body: StreamBuilder<Map<String, Map<String, dynamic>>>(
-        stream: _fetchUserResultsStream(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text("Hata oluştu: ${snapshot.error}"));
-          }
-
-          // Güncellenen veriyi al
-          categoryResults = snapshot.data ?? {};
-
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: ListView(
-              physics: const BouncingScrollPhysics(),
-              children: [
-                buildCategorySection(context, "Başlangıç Seviyesi", [
-                  buildCategoryCard(context, "Family Tree", "family tree"),
-                  buildCategoryCard(context, "Colors", "colors", isLocked: true),
-                  buildCategoryCard(context, "Numbers", "numbers", isLocked: true),
-                  buildCategoryCard(context, "Fruits", "fruits", isLocked: true),
-                ]),
-                buildCategorySection(context, "Orta Seviye", []),
-                buildCategorySection(context, "İleri Seviye", []),
-              ],
+      body: Column(
+        children: [
+          // Tutorial Butonu
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orangeAccent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const TutorialScreen()),
+                );
+              },
+              child: const Text(
+                "Tutorial",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
             ),
-          );
-        },
+          ),
+
+          // StreamBuilder ve Sekmeler
+          Expanded(
+            child: StreamBuilder<Map<String, Map<String, dynamic>>>( // StreamBuilder'ı burada açıyoruz
+              stream: _fetchUserResultsStream(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text("Hata oluştu: ${snapshot.error}"));
+                }
+
+                // Veriyi alıp işleme kısmı
+                categoryResults = snapshot.data ?? {};
+
+                return TabBarView(
+                  controller: _tabController,
+                  children: [
+                    buildCategorySection(
+                      [
+                        buildCategoryCard(context, "Family Tree", "family tree"),
+                        buildCategoryCard(context, "Colors", "colors", isLocked: true),
+                        buildCategoryCard(context, "Numbers", "numbers", isLocked: true),
+                        buildCategoryCard(context, "Fruits", "fruits", isLocked: true),
+                        buildCategoryCard(context, "Animals", "animals", isLocked: true),
+                        buildCategoryCard(context, "Vegetables", "vegetables", isLocked: true),
+                        buildCategoryCard(context, "Adjectives", "adjectives", isLocked: true),
+                        buildCategoryCard(context, "Body Parts", "bodyparts", isLocked: true),
+                        buildCategoryCard(context, "Clothes", "clothes", isLocked: true),
+                      ],
+                      [
+                      ],
+                    ),
+                    buildCategorySection([], []),
+                    buildCategorySection([], []),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget buildCategorySection(BuildContext context, String title, List<Widget> categoryCards) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          margin: const EdgeInsets.symmetric(vertical: 12),
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-          decoration: BoxDecoration(
-            color: Colors.amber,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.orange.withOpacity(0.4),
-                blurRadius: 6,
-                offset: const Offset(2, 4),
+  Widget buildCategorySection(
+      List<Widget> vocabularyCards, List<Widget> grammarCards) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 5),
+                      child: Text(
+                        "Vocabulary",
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                    Column(children: vocabularyCards),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 5),
+                      child: Text(
+                        "Grammar",
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                    Column(children: grammarCards),
+                  ],
+                ),
               ),
             ],
           ),
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: 1.2,
-            ),
-          ),
-        ),
-        Column(children: categoryCards),
-      ],
+        ],
+      ),
     );
   }
 
@@ -205,36 +295,33 @@ class _MainPageState extends State<MainPage> {
     int solved = categoryResults[category]?["total"] ?? 0;
     int total = categoryTotalQuestions[category] ?? 0;
 
-    // Kilit durumunu kontrol et
     bool categoryLocked = isLocked;
 
-    // Eğer önceki kategori tamamlandıysa ve kilit durumu daha önce açılmamışsa, kilidi aç
-    if (category == "colors" && (categoryResults["family tree"]?["total"] ?? 0) == categoryTotalQuestions["family tree"]) {
-      if (!categoryUnlockedStatus["colors"]!) {
-        categoryUnlockedStatus["colors"] = true;
-        saveUnlockedCategory("colors");
-      }
-    }
-    if (category == "numbers" && (categoryResults["colors"]?["total"] ?? 0) == categoryTotalQuestions["colors"]) {
-      if (!categoryUnlockedStatus["numbers"]!) {
-        categoryUnlockedStatus["numbers"] = true;
-        saveUnlockedCategory("numbers");
+    // Kategoriler dizisi
+    List<String> categoryOrder = [
+      "family tree", "colors", "numbers", "fruits", "animals", "vegetables", "adjectives", "bodyparts", "clothes"
+    ];
+
+    // Kilit açma işlemini tek bir fonksiyonla yönetmek
+    void unlockCategory(String currentCategory, String previousCategory) {
+      if (category == currentCategory && (categoryResults[previousCategory]?["total"] ?? 0) == categoryTotalQuestions[previousCategory]) {
+        if (!categoryUnlockedStatus[currentCategory]!) {
+          categoryUnlockedStatus[currentCategory] = true;
+          saveUnlockedCategory(currentCategory);
+        }
       }
     }
 
-    if (category == "fruits" && (categoryResults["numbers"]?["total"] ?? 0) == categoryTotalQuestions["numbers"]) {
-      if (!categoryUnlockedStatus["fruits"]!) {
-        categoryUnlockedStatus["fruits"] = true;
-        saveUnlockedCategory("fruits");
-      }
+    // Kategoriler için kilit açma fonksiyonunu sırayla çalıştırmak
+    for (int i = 1; i < categoryOrder.length; i++) {
+      unlockCategory(categoryOrder[i], categoryOrder[i - 1]);
     }
 
-    // Eğer kilit durumu bir kez açıldıysa, artık kilitli olmamalı
+    // Mevcut kategori kilidini kontrol et
     if (categoryUnlockedStatus[category] == true) {
       categoryLocked = false;
     }
 
-    // Kilitliyse "Henüz kilidi açılmadı" yazısını göster
     String statusText = categoryLocked ? "Henüz kilidi açılmadı" : "Henüz test çözülmedi";
     Color statusColor = Colors.grey;
 
@@ -279,9 +366,14 @@ class _MainPageState extends State<MainPage> {
                   letterSpacing: 0.8,
                 ),
               ),
-              subtitle: Text(
-                statusText,
-                style: TextStyle(fontSize: 16, color: statusColor),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    statusText,
+                    style: TextStyle(fontSize: 16, color: statusColor),
+                  ),
+                ],
               ),
               trailing: Icon(
                 categoryLocked ? Icons.lock : Icons.arrow_forward_ios,
@@ -289,7 +381,6 @@ class _MainPageState extends State<MainPage> {
                 size: 24,
               ),
             ),
-            // Eğer kategori kilitliyse, "Sıfırla" butonunu göstermiyoruz
             if (!categoryLocked)
               TextButton(
                 onPressed: () {

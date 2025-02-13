@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'main_page.dart';
+
 class CategoryScreen extends StatefulWidget {
   final String category;
 
@@ -24,6 +26,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
   final PageController _pageController = PageController();
   List<DocumentSnapshot> documents = [];
   bool isLoading = true; // Splash ekranı için değişken
+  bool _isTestCompleted = false;
+  double _messageOpacity = 0.0;
 
   @override
   void initState() {
@@ -105,12 +109,12 @@ class _CategoryScreenState extends State<CategoryScreen> {
           bool isCorrect = data[key];
 
           // Eğer doğruysa `correctAnswers[i]`, yanlışsa farklı bir değer ata
-          selectedAnswers[i] = isCorrect ? correctAnswers[i] : (correctAnswers[i] == 1 ? 2 : 1);
+          selectedAnswers[i] =
+              isCorrect ? correctAnswers[i] : (correctAnswers[i] == 1 ? 2 : 1);
         }
       }
     }
   }
-
 
   /// Google Drive dosya linkini görsel olarak yüklenebilir hale getirir.
   String convertGoogleDriveUrl(String url) {
@@ -130,7 +134,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
       final doc = documents[i];
       final rawUrl = doc["url"] ?? "";
       final imageUrl = convertGoogleDriveUrl(rawUrl);
-      final fileName = '${widget.category}_$i.jpg'; // Kategoriye göre dosya ismi
+      final fileName =
+          '${widget.category}_$i.jpg'; // Kategoriye göre dosya ismi
 
       futures.add(
         _downloadAndSaveImage(imageUrl, fileName).then((file) {
@@ -166,14 +171,19 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
     // Firestore referanslarını ayarla
     DocumentReference userRef =
-    FirebaseFirestore.instance.collection("users").doc(userId);
+        FirebaseFirestore.instance.collection("users").doc(userId);
 
-    DocumentReference categoryRef = userRef.collection("results").doc(categoryName);
+    DocumentReference categoryRef =
+        userRef.collection("results").doc(categoryName);
 
     // Firestore'a ekleme
-    await categoryRef.set({
-      "soru$index": isCorrect, // Örn: "soru1": true, "soru2": false
-    }, SetOptions(merge: true)); // Merge kullanarak sadece güncellenecek alanları değiştirelim.
+    await categoryRef.set(
+        {
+          "soru$index": isCorrect, // Örn: "soru1": true, "soru2": false
+        },
+        SetOptions(
+            merge:
+                true)); // Merge kullanarak sadece güncellenecek alanları değiştirelim.
   }
 
   Future<void> _speak(String text) async {
@@ -181,8 +191,18 @@ class _CategoryScreenState extends State<CategoryScreen> {
       print("Boş metin seslendirilemez.");
       return;
     }
-
     print("Seslendiriliyor: $text");
+    await flutterTts.setSharedInstance(true);
+    await flutterTts.setIosAudioCategory(
+      IosTextToSpeechAudioCategory.playback,
+      [
+        IosTextToSpeechAudioCategoryOptions.allowBluetooth,
+        IosTextToSpeechAudioCategoryOptions.allowBluetoothA2DP,
+        IosTextToSpeechAudioCategoryOptions.mixWithOthers,
+        IosTextToSpeechAudioCategoryOptions.defaultToSpeaker
+      ],
+      IosTextToSpeechAudioMode.defaultMode,
+    );
 
     await flutterTts.setLanguage("en-US"); // Dil ayarla
     await flutterTts.setPitch(1.0); // Ses tonu normal
@@ -190,75 +210,162 @@ class _CategoryScreenState extends State<CategoryScreen> {
     await flutterTts.speak(text);
   }
 
+  void _showCompletionMessage() {
+    setState(() {
+      _isTestCompleted = true;
+      _messageOpacity = 1.0;
+    });
 
-  @override
-  void dispose() {
-    flutterTts.stop(); // Sayfa kapatılırken sesi durdur
-    super.dispose();
+    // 3 saniye sonra mesajı kaybolacak şekilde ayarlıyoruz
+    Future.delayed(Duration(seconds: 3), () {
+      setState(() {
+        _messageOpacity = 0.0;
+      });
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
       body: isLoading
           ? buildSplashScreen() // Yükleme tamamlanana kadar Splash ekranı
-          : PageView.builder(
-        controller: _pageController,
-        itemCount: documents.length,
-        onPageChanged: (int index) {
-          setState(() {
-            _currentPage = index;
-          });
-        },
-        itemBuilder: (context, index) {
-          final doc = documents[index];
-          final rawUrl = doc["url"] ?? "";
-          final imageUrl = convertGoogleDriveUrl(rawUrl);
-          final bool isAnswer = doc["isAnswer"] ?? false;
+          : Stack(
+              children: [
+                // Sayfa içerikleri
+                PageView.builder(
+                  controller: _pageController,
+                  itemCount: documents.length,
+                  onPageChanged: (int index) {
+                    setState(() {
+                      _currentPage = index;
+                    });
+                    // Son sayfada "Testi Tamamladınız!" mesajını göster
+                    if (_currentPage == documents.length - 1) {
+                      _showCompletionMessage();
+                    }
+                  },
+                  itemBuilder: (context, index) {
+                    final doc = documents[index];
+                    final rawUrl = doc["url"] ?? "";
+                    final imageUrl = convertGoogleDriveUrl(rawUrl);
+                    final bool isAnswer = doc["isAnswer"] ?? false;
 
-          return Center(
-            child: Card(
-              elevation: 4,
-              margin: const EdgeInsets.all(16.0),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: AspectRatio(
-                  aspectRatio: 1 / 2,
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: FutureBuilder<File?>(
-                          future: _getCachedImage('${widget.category}_$index.jpg'),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
-                              return CircularProgressIndicator();
-                            } else if (snapshot.hasData && snapshot.data != null) {
-                              return Image.file(
-                                snapshot.data!,
-                                fit: BoxFit.contain,
-                              );
-                            } else {
-                              return Icon(Icons.broken_image);
-                            }
-                          },
+                    return Center(
+                      child: Card(
+                        elevation: 4,
+                        margin: const EdgeInsets.all(16.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: AspectRatio(
+                            aspectRatio: 1 / 2,
+                            child: Stack(
+                              children: [
+                                Positioned.fill(
+                                  child: FutureBuilder<File?>(
+                                    future: _getCachedImage(
+                                        '${widget.category}_$index.jpg'),
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting) {
+                                        return CircularProgressIndicator();
+                                      } else if (snapshot.hasData &&
+                                          snapshot.data != null) {
+                                        return Image.file(
+                                          snapshot.data!,
+                                          fit: BoxFit.contain,
+                                        );
+                                      } else {
+                                        return Icon(Icons.broken_image);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                if (isAnswer) ...[
+                                  buildAnswerArea(1, context, 0.195, index),
+                                  buildAnswerArea(2, context, 0.11, index),
+                                  buildAnswerArea(3, context, 0.275, index),
+                                ],
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                      if (isAnswer) ...[
-                        buildAnswerArea(1, context, 0.195, index),
-                        buildAnswerArea(2, context, 0.11, index),
-                        buildAnswerArea(3, context, 0.275, index),
-                      ],
-                    ],
-                  ),
+                    );
+                  },
                 ),
-              ),
+                // Ana menü butonu ekleme
+                if (_currentPage == 0 ||
+                    _currentPage == documents.length - 1) ...[
+                  // İlk ve son sayfadaysa, ortada bir buton göster
+                  Positioned(
+                    bottom: screenHeight * 0.14, // Ekranın altından %14 mesafe
+                    left: screenWidth * 0.35, // Ortada hizalama
+                    child: Column(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.home, color: Colors.black, size: 30),
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => MainPage()),
+                            );
+                          },
+                        ),
+                        Text(
+                          'Ana Menüye Dön',
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  // Orta sayfalardaysa, sağ üst köşeye bir buton koy
+                  Positioned(
+                    bottom: screenHeight * 0.82, // Ekranın altından %14 mesafe
+                    left: screenWidth * 0.85, // Ortada hizalama
+                    child: IconButton(
+                      icon: Icon(Icons.home, color: Colors.black, size: 35),
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => MainPage()),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+
+                // "Testi Tamamladınız!" mesajı
+                if (_isTestCompleted)
+                  Positioned(
+                    bottom: screenHeight * 0.87, // Ekranın altından %5 mesafe
+                    left: screenWidth * 0.275,
+                    child: Center(
+                      child: AnimatedOpacity(
+                        opacity: _messageOpacity,
+                        duration: Duration(seconds: 3),
+                        child: Container(
+                          padding: EdgeInsets.all(16),
+                          color: Colors.green,
+                          child: Text(
+                            'Testi Tamamladınız!',
+                            style: TextStyle(color: Colors.white, fontSize: 18),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-          );
-        },
-      ),
     );
   }
 
@@ -277,7 +384,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
           right: 0,
           child: Text(
             "Görseller yükleniyor, lütfen bekleyin...",
-            style: TextStyle(color: Colors.green, fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.green, fontSize: 20, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
         ),
@@ -293,11 +401,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
     );
   }
 
-
-
-  Widget buildAnswerArea(int answerIndex, BuildContext context, double bottom, int index) {
+  Widget buildAnswerArea(
+      int answerIndex, BuildContext context, double bottom, int index) {
     // Firestore'dan dökümanı al ve Map olarak işle
-    Map<String, dynamic>? data = documents[index].data() as Map<String, dynamic>?;
+    Map<String, dynamic>? data =
+        documents[index].data() as Map<String, dynamic>?;
 
     if (data == null) return const SizedBox.shrink();
 
@@ -313,65 +421,70 @@ class _CategoryScreenState extends State<CategoryScreen> {
     // 3. seçenek (word3) yoksa, hizalamayı değiştir
     bool hasThirdOption = data.containsKey("word3") && data["word3"] != null;
     if (!hasThirdOption) {
-      if (answerIndex == 1) bottom = 0.205; // 3. şık yoksa, 1. şıkkın hizasını düzelt
+      if (answerIndex == 1)
+        bottom = 0.205; // 3. şık yoksa, 1. şıkkın hizasını düzelt
     }
 
     // Eğer "word3" yoksa üçüncü şık gösterilmeyecek
-    bool shouldShowOption = answerIndex < 3 || (answerIndex == 3 && word != null);
+    bool shouldShowOption =
+        answerIndex < 3 || (answerIndex == 3 && word != null);
 
     return shouldShowOption
         ? Positioned(
-      left: MediaQuery.of(context).size.width * 0.156,
-      bottom: MediaQuery.of(context).size.height * bottom,
-      width: MediaQuery.of(context).size.width * 0.67,
-      height: MediaQuery.of(context).size.height * 0.067,
-      child: GestureDetector(
-        onTap: selectedAnswers[index] == null
-            ? () {
-          checkAnswer(answerIndex, index);
-        }
-            : null, // Eğer bir şık seçilmişse, onTap'i devre dışı bırak
-        child: Stack(
-          children: [
-            // Arka plan
-            Container(
-              color: Colors.transparent,
-            ),
-            // Dinleme Butonu (Sesli Telaffuz)
-            if (word != null)
-              Positioned(
-                left: 0,
-                top: 2,
-                child: IconButton(
-                  icon: Icon(Icons.volume_up, color: Colors.blue, size: 28),
-                  onPressed: () {
-                    if (word != null && word.isNotEmpty) {
-                      _speak(word);
-                    } else {
-                      print("Kelime boş olduğu için seslendirme yapılmadı.");
+            left: MediaQuery.of(context).size.width * 0.156,
+            bottom: MediaQuery.of(context).size.height * bottom,
+            width: MediaQuery.of(context).size.width * 0.67,
+            height: MediaQuery.of(context).size.height * 0.067,
+            child: GestureDetector(
+              onTap: selectedAnswers[index] == null
+                  ? () {
+                      checkAnswer(answerIndex, index);
                     }
-                  },
-                ),
+                  : null, // Eğer bir şık seçilmişse, onTap'i devre dışı bırak
+              child: Stack(
+                children: [
+                  // Arka plan
+                  Container(
+                    color: Colors.transparent,
+                  ),
+                  // Dinleme Butonu (Sesli Telaffuz)
+                  if (word != null)
+                    Positioned(
+                      left: 0,
+                      top: 2,
+                      child: IconButton(
+                        icon:
+                            Icon(Icons.volume_up, color: Colors.blue, size: 28),
+                        onPressed: () {
+                          if (word != null && word.isNotEmpty) {
+                            _speak(word);
+                          } else {
+                            print(
+                                "Kelime boş olduğu için seslendirme yapılmadı.");
+                          }
+                        },
+                      ),
+                    ),
+                  // Doğru/yanlış ikonları
+                  if (selectedAnswers[index] == answerIndex)
+                    Positioned(
+                      right: 7,
+                      top: 14,
+                      child: Icon(
+                        selectedAnswers[index] == correctAnswers[index]
+                            ? Icons.check_circle_outline
+                            : Icons.cancel_outlined,
+                        color: selectedAnswers[index] == correctAnswers[index]
+                            ? Colors.green
+                            : Colors.red,
+                        size: 30,
+                      ),
+                    ),
+                ],
               ),
-            // Doğru/yanlış ikonları
-            if (selectedAnswers[index] == answerIndex)
-              Positioned(
-                right: 7,
-                top: 14,
-                child: Icon(
-                  selectedAnswers[index] == correctAnswers[index]
-                      ? Icons.check_circle_outline
-                      : Icons.cancel_outlined,
-                  color: selectedAnswers[index] == correctAnswers[index]
-                      ? Colors.green
-                      : Colors.red,
-                  size: 30,
-                ),
-              ),
-          ],
-        ),
-      ),
-    )
-        : const SizedBox.shrink(); // Eğer üçüncü şık yoksa, boş alan göstermesin
+            ),
+          )
+        : const SizedBox
+            .shrink(); // Eğer üçüncü şık yoksa, boş alan göstermesin
   }
 }
