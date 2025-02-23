@@ -29,45 +29,42 @@ class _LoginScreenState extends State<LoginScreen> {
           password: password,
         );
 
-        await FirebaseFirestore.instance
+        // Kullanıcının Firestore'daki verisini güncelle (merge: true kullan)
+         FirebaseFirestore.instance
             .collection("users")
             .doc(userCredential.user!.uid)
-            .update({
-          "devices": FieldValue.arrayUnion([_getDeviceInfo()]),
+            .set({
           "lastLogin": FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true)); // 🔹 Eğer belge yoksa oluşturur, varsa günceller
+
+        if (!mounted) return;
+
+        Future.delayed(Duration(milliseconds: 500), () {
+          if (mounted) {
+            print("Navigating to MainPage...");
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const MainPage()),
+            );
+          }
         });
 
-        if (!mounted) return; // Widget dispose edildiyse işlemi durdur
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainPage()),
-        );
       } catch (e) {
-        if (!mounted) return; // Widget dispose edildiyse işlemi durdur
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Giriş başarısız: $e")),
         );
       }
     } else {
-      if (!mounted) return; // Widget dispose edildiyse işlemi durdur
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Kullanıcı adı veya şifre boş bırakılamaz.")),
       );
     }
   }
 
-  Map<String, String> _getDeviceInfo() {
-    // Cihaz bilgilerini topla (örneğin, cihaz modeli, işletim sistemi, vs.)
-    return {
-      "deviceModel": "Example Model", // Bu bilgileri gerçek cihaz bilgileriyle değiştirin
-      "os": "Android/iOS",
-      "lastLogin": DateTime.now().toString(),
-    };
-  }
-
   void _showRegisterDialog() async {
-    if (_isLoading || !mounted) return; // İşlem devam ediyorsa veya widget dispose edilmişse, işlemi durdur
+    if (_isLoading || !mounted) return;
     setState(() {
       _isLoading = true;
     });
@@ -119,12 +116,30 @@ class _LoginScreenState extends State<LoginScreen> {
 
               if (name.isNotEmpty && username.isNotEmpty && password.isNotEmpty) {
                 try {
+                  // 🔍 Aynı isme sahip kullanıcı var mı kontrol et
+                  var existingUser = await FirebaseFirestore.instance
+                      .collection("users")
+                      .where("name", isEqualTo: name)
+                      .get();
+
+                  if (existingUser.docs.isNotEmpty) {
+                    // 🚨 Aynı isimde kullanıcı varsa hata ver
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Bu isim zaten kullanılıyor, lütfen başka bir isim seçin.")),
+                    );
+                    return;
+                  }
+
+                  // 📧 E-posta oluştur
                   String email = "$username@example.com";
+
+                  // 🔹 Kullanıcıyı Firebase Auth ile kaydet
                   UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
                     email: email,
                     password: password,
                   );
 
+                  // 📝 Firestore'a kullanıcı bilgilerini kaydet
                   await FirebaseFirestore.instance
                       .collection("users")
                       .doc(userCredential.user!.uid)
@@ -134,19 +149,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     "createdAt": FieldValue.serverTimestamp(),
                   });
 
-                  if (!mounted) return; // Widget dispose edilmişse, işlemi durdur
+                  if (!mounted) return;
                   Navigator.pop(context); // Dialog'u kapat
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Kayıt başarılı!")),
                   );
                 } catch (e) {
-                  if (!mounted) return; // Widget dispose edilmişse, işlemi durdur
+                  if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text("Kayıt başarısız: $e")),
                   );
                 }
               } else {
-                if (!mounted) return; // Widget dispose edilmişse, işlemi durdur
+                if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("İsim, kullanıcı adı veya şifre boş bırakılamaz.")),
                 );
@@ -169,6 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = false;
     });
   }
+
 
   @override
   Widget build(BuildContext context) {

@@ -66,23 +66,17 @@ class _CategoryScreenState extends State<CategoryScreen> {
     if (user == null) return;
 
     final snapshot = await FirebaseFirestore.instance
-        .collection(widget.category)
-        .orderBy("queue")
-        .get();
+        .collection(widget.category).orderBy("queue").get();
 
     if (snapshot.docs.isNotEmpty) {
       documents = snapshot.docs;
       correctAnswers = documents.map((doc) => doc["answer"] as int).toList();
       selectedAnswers = List.filled(documents.length, null);
-
-      // Kullanıcının verdiği cevapları getir
-      await _fetchUserAnswers(user.uid);
-
-      // Tüm görselleri önceden yükle
+      await _fetchUserAnswers(user!.uid);
+      // Listeleri başla
       await _preloadImages();
-
       setState(() {
-        isLoading = false; // Yükleme tamamlandı
+        isLoading = false;
       });
     } else {
       setState(() {
@@ -100,18 +94,25 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
     DocumentSnapshot snapshot = await categoryRef.get();
 
-    if (snapshot.exists) {
-      Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+    // Eğer döküman yoksa, yeni bir döküman oluştur
+    if (!snapshot.exists) {
+      await categoryRef.set({
+        "correct_answers": [],
+        "wrong_answers": [],
+      });
+      return;
+    }
 
-      for (int i = 0; i < documents.length; i++) {
-        String key = "soru$i";
-        if (data.containsKey(key)) {
-          bool isCorrect = data[key];
+    // Döküman varsa, verileri al
+    Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+    List<int> correctList = List<int>.from(data["correct_answers"] ?? []);
+    List<int> wrongList = List<int>.from(data["wrong_answers"] ?? []);
 
-          // Eğer doğruysa `correctAnswers[i]`, yanlışsa farklı bir değer ata
-          selectedAnswers[i] =
-              isCorrect ? correctAnswers[i] : (correctAnswers[i] == 1 ? 2 : 1);
-        }
+    for (int i = 0; i < documents.length; i++) {
+      if (correctList.contains(i)) {
+        selectedAnswers[i] = correctAnswers[i];
+      } else if (wrongList.contains(i)) {
+        selectedAnswers[i] = (correctAnswers[i] == 1 ? 2 : 1);
       }
     }
   }
@@ -150,40 +151,49 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   void checkAnswer(int answerIndex, int index) async {
-    // Eğer bir şık zaten seçilmişse, işlemi yapma
-    if (selectedAnswers[index] != null) {
-      return;
-    }
+    if (selectedAnswers[index] != null) return; // Zaten seçildiyse işlem yapma
 
     setState(() {
       selectedAnswers[index] = answerIndex;
     });
 
-    // Kullanıcının UID’sini al
     User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) return; // Kullanıcı giriş yapmamışsa işlemi yapma
+    if (user == null) return;
 
     String userId = user.uid;
-    String categoryName = widget.category; // Kategori adı
-
-    // Doğru olup olmadığını kontrol et
+    String categoryName = widget.category;
     bool isCorrect = (answerIndex == correctAnswers[index]);
 
-    // Firestore referanslarını ayarla
-    DocumentReference userRef =
-        FirebaseFirestore.instance.collection("users").doc(userId);
+    DocumentReference categoryRef = FirebaseFirestore.instance
+        .collection("users")
+        .doc(userId)
+        .collection("results")
+        .doc(categoryName);
 
-    DocumentReference categoryRef =
-        userRef.collection("results").doc(categoryName);
+    try {
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        DocumentSnapshot snapshot = await transaction.get(categoryRef);
+        Map<String, dynamic> data = snapshot.exists ? snapshot.data() as Map<String, dynamic> : {};
 
-    // Firestore'a ekleme
-    await categoryRef.set(
-        {
-          "soru$index": isCorrect, // Örn: "soru1": true, "soru2": false
-        },
-        SetOptions(
-            merge:
-                true)); // Merge kullanarak sadece güncellenecek alanları değiştirelim.
+        // **🔹 Listeyi set olarak kullanarak aynı index'in tekrar eklenmesini önlüyoruz**
+        Set<int> correctSet = Set<int>.from(data["correct_answers"] ?? []);
+        Set<int> wrongSet = Set<int>.from(data["wrong_answers"] ?? []);
+
+        if (isCorrect) {
+          correctSet.add(index);
+        } else {
+          wrongSet.add(index);
+        }
+
+        // **Firestore'a liste olarak güncelle**
+        transaction.set(categoryRef, {
+          "correct_answers": correctSet.toList(),
+          "wrong_answers": wrongSet.toList(),
+        }, SetOptions(merge: true));
+      });
+    } catch (e) {
+      print("🔥 Firestore işlemi sırasında hata: $e");
+    }
   }
 
   Future<void> _speak(String text) async {
@@ -196,10 +206,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
     await flutterTts.setIosAudioCategory(
       IosTextToSpeechAudioCategory.playback,
       [
-        IosTextToSpeechAudioCategoryOptions.allowBluetooth,
-        IosTextToSpeechAudioCategoryOptions.allowBluetoothA2DP,
-        IosTextToSpeechAudioCategoryOptions.mixWithOthers,
-        IosTextToSpeechAudioCategoryOptions.defaultToSpeaker
+        IosTextToSpeechAudioCategoryOptions.allowBluetooth, IosTextToSpeechAudioCategoryOptions.allowBluetoothA2DP, IosTextToSpeechAudioCategoryOptions.mixWithOthers, IosTextToSpeechAudioCategoryOptions.defaultToSpeaker
       ],
       IosTextToSpeechAudioMode.defaultMode,
     );
@@ -241,12 +248,15 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     setState(() {
                       _currentPage = index;
                     });
-                    // Son sayfada "Testi Tamamladınız!" mesajını göster
                     if (_currentPage == documents.length - 1) {
                       _showCompletionMessage();
                     }
                   },
                   itemBuilder: (context, index) {
+                    if (index >= documents.length) {
+                      return const SizedBox.shrink(); // Geçersiz indeks durumunda boş widget döndür
+                    }
+
                     final doc = documents[index];
                     final rawUrl = doc["url"] ?? "";
                     final imageUrl = convertGoogleDriveUrl(rawUrl);
@@ -267,14 +277,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
                               children: [
                                 Positioned.fill(
                                   child: FutureBuilder<File?>(
-                                    future: _getCachedImage(
-                                        '${widget.category}_$index.jpg'),
+                                    future: _getCachedImage('${widget.category}_$index.jpg'),
                                     builder: (context, snapshot) {
-                                      if (snapshot.connectionState ==
-                                          ConnectionState.waiting) {
+                                      if (snapshot.connectionState == ConnectionState.waiting) {
                                         return CircularProgressIndicator();
-                                      } else if (snapshot.hasData &&
-                                          snapshot.data != null) {
+                                      } else if (snapshot.hasData && snapshot.data != null) {
                                         return Image.file(
                                           snapshot.data!,
                                           fit: BoxFit.contain,
@@ -286,9 +293,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
                                   ),
                                 ),
                                 if (isAnswer) ...[
-                                  buildAnswerArea(1, context, 0.195, index),
+                                  buildAnswerArea(1, context, 0.1975, index),
                                   buildAnswerArea(2, context, 0.11, index),
-                                  buildAnswerArea(3, context, 0.275, index),
+                                  buildAnswerArea(3, context, 0.285, index),
                                 ],
                               ],
                             ),
@@ -299,16 +306,15 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   },
                 ),
                 // Ana menü butonu ekleme
-                if (_currentPage == 0 ||
-                    _currentPage == documents.length - 1) ...[
+                if (_currentPage == documents.length - 1) ...[
                   // İlk ve son sayfadaysa, ortada bir buton göster
                   Positioned(
-                    bottom: screenHeight * 0.14, // Ekranın altından %14 mesafe
-                    left: screenWidth * 0.35, // Ortada hizalama
+                    bottom: screenHeight * 0.12, // Ekranın altından %14 mesafe
+                    left: screenWidth * 0.43, // Ortada hizalama
                     child: Column(
                       children: [
                         IconButton(
-                          icon: Icon(Icons.home, color: Colors.black, size: 30),
+                          icon: Icon(Icons.home, color: Colors.red, size: 28),
                           onPressed: () {
                             Navigator.pushReplacement(
                               context,
@@ -316,13 +322,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
                                   builder: (context) => MainPage()),
                             );
                           },
-                        ),
-                        Text(
-                          'Ana Menüye Dön',
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15),
                         ),
                       ],
                     ),
@@ -333,7 +332,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     bottom: screenHeight * 0.82, // Ekranın altından %14 mesafe
                     left: screenWidth * 0.85, // Ortada hizalama
                     child: IconButton(
-                      icon: Icon(Icons.home, color: Colors.black, size: 35),
+                      icon: Icon(Icons.home, color: Colors.red, size: 35),
                       onPressed: () {
                         Navigator.pushReplacement(
                           context,
@@ -345,7 +344,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                 ],
 
                 // "Testi Tamamladınız!" mesajı
-                if (_isTestCompleted)
+                if (_isTestCompleted && (!widget.category.contains("grammar")))
                   Positioned(
                     bottom: screenHeight * 0.87, // Ekranın altından %5 mesafe
                     left: screenWidth * 0.275,
@@ -407,19 +406,18 @@ class _CategoryScreenState extends State<CategoryScreen> {
     Map<String, dynamic>? data =
         documents[index].data() as Map<String, dynamic>?;
 
-    if (data == null) return const SizedBox.shrink();
+    if (documents.isEmpty || index >= documents.length) {
+      return const SizedBox.shrink(); // Boş veya geçersiz indeks durumunda boş widget döndür
+    }
 
     String? word;
-    if (answerIndex == 1) {
-      word = data["word"];
-    } else if (answerIndex == 2) {
-      word = data["word2"];
-    } else if (answerIndex == 3 && data.containsKey("word3")) {
-      word = data["word3"];
+    if (answerIndex == 1) {word = data!["word"];
+    } else if (answerIndex == 2) { word = data!["word2"];
+    } else if (answerIndex == 3 && data!.containsKey("word3")) {word = data["word3"];
     }
 
     // 3. seçenek (word3) yoksa, hizalamayı değiştir
-    bool hasThirdOption = data.containsKey("word3") && data["word3"] != null;
+    bool hasThirdOption = data!.containsKey("word3") && data["word3"] != null;
     if (!hasThirdOption) {
       if (answerIndex == 1)
         bottom = 0.205; // 3. şık yoksa, 1. şıkkın hizasını düzelt
@@ -431,10 +429,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
     return shouldShowOption
         ? Positioned(
-            left: MediaQuery.of(context).size.width * 0.156,
-            bottom: MediaQuery.of(context).size.height * bottom,
-            width: MediaQuery.of(context).size.width * 0.67,
-            height: MediaQuery.of(context).size.height * 0.067,
+            left: MediaQuery.of(context).size.width * 0.156, bottom: MediaQuery.of(context).size.height * bottom,
+            width: MediaQuery.of(context).size.width * 0.67, height: MediaQuery.of(context).size.height * 0.067,
             child: GestureDetector(
               onTap: selectedAnswers[index] == null
                   ? () {
@@ -472,11 +468,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       top: 14,
                       child: Icon(
                         selectedAnswers[index] == correctAnswers[index]
-                            ? Icons.check_circle_outline
-                            : Icons.cancel_outlined,
+                            ? Icons.check_circle_outline : Icons.cancel_outlined,
                         color: selectedAnswers[index] == correctAnswers[index]
-                            ? Colors.green
-                            : Colors.red,
+                            ? Colors.green : Colors.red,
                         size: 30,
                       ),
                     ),

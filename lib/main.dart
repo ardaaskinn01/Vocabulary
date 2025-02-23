@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const SplashScreen(), // SplashScreen ana sayfa olarak atanıyor
+      home: const SplashScreen(), // SplashScreen başlangıç ekranı
     );
   }
 }
@@ -44,31 +44,26 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _checkCurrentUser();
+    _checkAuthState();
   }
 
-  void _checkCurrentUser() async {
-    await Future.delayed(const Duration(seconds: 2));
-    try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        if (mounted) {
+  void _checkAuthState() async {
+    await Future.delayed(const Duration(seconds: 2)); // Gecikme ekleyerek Firebase'in yüklenmesini bekle
+    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      if (mounted) {
+        if (user != null) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const MainPage()),
           );
-        }
-      } else {
-        if (mounted) {
+        } else {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const LoginScreen()),
           );
         }
       }
-    } catch (e) {
-      print("Firebase Auth error: $e");
-    }
+    });
   }
 
   @override
@@ -76,26 +71,24 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Mavi arka plan
           Positioned.fill(
             child: Container(
-              color: Colors.blue, // Mavi arka plan rengi
+              color: Colors.blue, // Arka plan rengi
             ),
           ),
-          // Yükleniyor spinner'ı ve yazı
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 CircularProgressIndicator(
-                  color: Colors.white, // Spinner rengi beyaz
+                  color: Colors.white,
                 ),
                 const SizedBox(height: 20),
                 const Text(
                   "Oturum Yükleniyor...",
                   style: TextStyle(
                     fontSize: 18,
-                    color: Colors.white, // Yazı rengi beyaz
+                    color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
