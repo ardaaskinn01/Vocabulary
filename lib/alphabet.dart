@@ -141,8 +141,9 @@ class _AlphabetScreenState extends State<AlphabetScreen> {
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
 
-    double imageWidth = screenWidth * 0.9; // Görsel genişliği ekranın %60'ı
-    double imageHeight = screenHeight * 0.9; // Görsel yüksekliği ekranın %50'si
+    // Sabit boyutlar
+    double fixedWidth = 350; // Sabit genişlik
+    double fixedHeight = 700; // Sabit yükseklik
 
     List<List<String>> pages = [
       ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
@@ -177,14 +178,14 @@ class _AlphabetScreenState extends State<AlphabetScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: SizedBox(
-                              width: imageWidth,
-                              height: imageHeight,
+                      child: SizedBox(
+                        width: fixedWidth, // Sabit genişlik
+                        height: fixedHeight, // Sabit yükseklik
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
                               child: FutureBuilder<File?>(
                                 future: _getCachedImage('alphabet_$index.jpg'),
                                 builder: (context, snapshot) {
@@ -193,8 +194,8 @@ class _AlphabetScreenState extends State<AlphabetScreen> {
                                   } else if (snapshot.hasData && snapshot.data != null) {
                                     return Image.file(
                                       snapshot.data!,
-                                      width: imageWidth,
-                                      height: imageHeight,
+                                      width: fixedWidth,
+                                      height: fixedHeight,
                                       fit: BoxFit.contain,
                                     );
                                   } else {
@@ -203,40 +204,40 @@ class _AlphabetScreenState extends State<AlphabetScreen> {
                                 },
                               ),
                             ),
-                          ),
 
-                          // Ses Butonları
-                          Positioned(
-                            right: screenWidth * 0.1, // Sağdan yüzde 5 boşluk bırak
-                            bottom: _currentPage == pages.length - 1
-                                ? screenHeight * 0.27 // Son sayfada yükseklik yüzde 40
-                                : screenHeight * 0.09, // Ekran yüksekliğinin yüzde 30'una yerleştir
-                            child: Container(
-                              width: screenWidth * 0.1, // Konteyner genişliği ekran genişliğinin yüzde 20'si
-                              height: _currentPage == pages.length - 1
-                                  ? screenHeight * 0.46 // Son sayfada yükseklik yüzde 40
-                                  : screenHeight * 0.64, // Konteyner yüksekliği ekran yüksekliğinin yüzde 40'ı
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly, // Widget'ları eşit aralıklarla yerleştir
-                                children: words.map((word) {
-                                  return ElevatedButton(
-                                    onPressed: () => _speak(word),
-                                    style: ElevatedButton.styleFrom(
-                                      shape: CircleBorder(),
-                                      padding: EdgeInsets.all(screenWidth * 0.03), // Buton boyutunu ekran genişliğine göre ayarla
-                                      backgroundColor: Colors.orange,
-                                    ),
-                                    child: Icon(
-                                      Icons.volume_up,
-                                      color: Colors.white,
-                                      size: screenWidth * 0.04, // Icon boyutunu ekran genişliğine göre ayarla
-                                    ),
-                                  );
-                                }).toList(),
+                            // Ses Butonları
+                            Positioned(
+                              right: fixedWidth * 0.05, // Sabit genişliğin %5'i kadar sağdan boşluk
+                              bottom: _currentPage == pages.length - 2
+                                  ? fixedHeight * 0.29 // Son sayfada yükseklik %27
+                                  : fixedHeight * 0.16, // Diğer sayfalarda yükseklik %9
+                              child: Container(
+                                width: fixedWidth * 0.2, // Sabit genişliğin %20'si
+                                height: _currentPage == pages.length - 2
+                                    ? fixedHeight * 0.54 // Son sayfada yükseklik %46
+                                    : fixedHeight * 0.685, // Diğer sayfalarda yükseklik %64
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  children: words.map((word) {
+                                    return ElevatedButton(
+                                      onPressed: () => _speak(word),
+                                      style: ElevatedButton.styleFrom(
+                                        shape: CircleBorder(),
+                                        padding: EdgeInsets.all(fixedWidth * 0.03), // Buton boyutu sabit genişliğe göre
+                                        backgroundColor: Colors.orange,
+                                      ),
+                                      child: Icon(
+                                        Icons.volume_up,
+                                        color: Colors.white,
+                                        size: fixedWidth * 0.05, // Icon boyutu sabit genişliğe göre
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -247,10 +248,10 @@ class _AlphabetScreenState extends State<AlphabetScreen> {
 
           // Ana Menü Butonu
           Positioned(
-            bottom: _currentPage == pages.length - 1 ? screenHeight * 0.12 : screenHeight * 0.82,
-            left: _currentPage == pages.length - 1 ? screenWidth * 0.43 : screenWidth * 0.85,
+            bottom: _currentPage == pages.length - 2 ? screenHeight * 0.1 : screenHeight * 0.8,
+            left: _currentPage == pages.length - 2 ? screenWidth * 0.43 : screenWidth * 0.82,
             child: IconButton(
-              icon: Icon(Icons.home, color: Colors.red, size: 35),
+              icon: Icon(Icons.home, color: Colors.red, size: 34),
               onPressed: () {
                 Navigator.pushReplacement(
                   context,

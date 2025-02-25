@@ -55,7 +55,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
 
   // Her kategoriye özel toplam soru sayısı
   final Map<String, int> categoryTotalQuestions = {
-    "family tree": 10, "colors": 11, "numbers": 20, "fruits": 20, "animals": 30, "vegetables": 20, "adjectives": 19, "bodyparts": 22, "clothes": 24, "countries": 13, "verbs": 22, "verbs2": 21, "shapes": 10, "emotions": 9, "jobs": 11, "workplaces": 22, "vehicles": 16, "households": 26, "space": 15, "grammar": 0, "alphabet": 0
+    "family tree": 10, "colors": 11, "numbers": 20, "fruits": 20, "animals": 30, "vegetables": 20, "adjectives": 19, "bodyparts": 22, "clothes": 23, "countries": 13, "verbs": 22, "verbs2": 21, "shapes": 10, "emotions": 9, "jobs": 11, "workplaces": 22, "vehicles": 16, "households": 26, "space": 15, "grammar": 0, "alphabet": 0
   };
 
   // Kategorilerin kilidinin bir kez açılıp açılmadığını takip eden harita
@@ -229,7 +229,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                         buildCategoryCard(context, "Family Tree", "family tree"), buildCategoryCard(context, "Colors", "colors", isLocked: true), buildCategoryCard(context, "Numbers", "numbers", isLocked: true), buildCategoryCard(context, "Fruits", "fruits", isLocked: true), buildCategoryCard(context, "Animals", "animals", isLocked: true), buildCategoryCard(context, "Vegetables", "vegetables", isLocked: true), buildCategoryCard(context, "Adjectives", "adjectives", isLocked: true), buildCategoryCard(context, "Body Parts", "bodyparts", isLocked: true), buildCategoryCard(context, "Clothes", "clothes", isLocked: true), buildCategoryCard(context, "Countries", "countries", isLocked: true), buildCategoryCard(context, "Verbs", "verbs", isLocked: true), buildCategoryCard(context, "Verbs 2", "verbs2", isLocked: true), buildCategoryCard(context, "Shapes", "shapes", isLocked: true), buildCategoryCard(context, "Emotions", "emotions", isLocked: true), buildCategoryCard(context, "Jobs", "jobs", isLocked: true), buildCategoryCard(context, "Workplaces", "workplaces", isLocked: true), buildCategoryCard(context, "Vehicles", "vehicles", isLocked: true), buildCategoryCard(context, "Households", "households", isLocked: true), buildCategoryCard(context, "Space", "space", isLocked: true),
                       ],
                       [
-                        buildCategoryCard(context, "Alphabet", "alphabet"), buildCategoryCard(context, "Grammar", "grammar"),
+                        buildCategoryCard(context, "Alphabet", "alphabet"), buildCategoryCard(context, "Grammar I", "grammar"),
                       ],
                     ),
                     buildCategorySection([], []),
