@@ -24,7 +24,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
   late TabController _tabController;
 
   Future<void> saveUnlockedCategory(String category) async {
-    if (!category.contains("grammar") || category != "alphabet") {
+    if (category != ("grammar") || category != "alphabet" || !category.contains("simplepresent") ) {
       await _firestore.collection("users").doc(userId).collection("unlockedCategories").doc(category).set({
         "unlocked": true,
       });
@@ -32,35 +32,21 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
   }
 
   Future<void> fetchUnlockedCategories() async {
-    if (userId == null) return;
-
-    final snapshot = await _firestore
-        .collection("users")
-        .doc(userId)
-        .collection("unlockedCategories")
-        .get(const GetOptions(source: Source.cache)); // Önce cache’den oku
-
-    bool updated = false;
+    final snapshot = await _firestore.collection("users").doc(userId).collection("unlockedCategories").get();
     for (var doc in snapshot.docs) {
-      if (categoryUnlockedStatus[doc.id] != (doc["unlocked"] ?? false)) {
-        categoryUnlockedStatus[doc.id] = doc["unlocked"] ?? false;
-        updated = true;
-      }
+      categoryUnlockedStatus[doc.id] = doc["unlocked"] ?? false;
     }
-
-    if (updated) {
-      setState(() {});
-    }
+    setState(() {});
   }
 
   // Her kategoriye özel toplam soru sayısı
   final Map<String, int> categoryTotalQuestions = {
-    "family tree": 10, "colors": 11, "numbers": 20, "fruits": 20, "animals": 30, "vegetables": 20, "adjectives": 19, "bodyparts": 22, "clothes": 23, "countries": 13, "verbs": 22, "verbs2": 21, "shapes": 10, "emotions": 9, "jobs": 11, "workplaces": 22, "vehicles": 16, "households": 26, "space": 15, "grammar": 0, "alphabet": 0
+    "family tree": 10, "colors": 11, "numbers": 20, "fruits": 20, "animals": 30, "vegetables": 20, "adjectives": 19, "bodyparts": 22, "clothes": 23, "countries": 13, "verbs": 22, "verbs2": 21, "shapes": 10, "emotions": 9, "jobs": 11, "workplaces": 22, "vehicles": 16, "households": 26, "space": 15, "grammar": 0, "alphabet": 0, "simplepresent": 0, "simplepresent2": 0, "simplepresent3": 0, "simplepresent4": 0
   };
 
   // Kategorilerin kilidinin bir kez açılıp açılmadığını takip eden harita
   final Map<String, bool> categoryUnlockedStatus = {
-    "family tree": false, "colors": false, "numbers": false, "fruits": false, "animals": false, "vegetables": false, "adjectives": false, "bodyparts": false, "clothes": false, "countries": false, "verbs": false, "verbs2": false, "shapes": false, "emotions": false, "jobs": false, "workplaces": false, "vehicles": false, "households": false, "space": false, "alphabet": false, "grammar": false
+    "family tree": false, "colors": false, "numbers": false, "fruits": false, "animals": false, "vegetables": false, "adjectives": false, "bodyparts": false, "clothes": false, "countries": false, "verbs": false, "verbs2": false, "shapes": false, "emotions": false, "jobs": false, "workplaces": false, "vehicles": false, "households": false, "space": false, "alphabet": false, "grammar": false, "simplepresent": false, "simplepresent2": false, "simplepresent3": false, "simplepresent4": false
   };
 
   @override
@@ -94,7 +80,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
       for (var doc in snapshot.docs) {
         String category = doc.id;
 
-        if (category == "alphabet" || category == "grammar") {
+        if (category == "alphabet" || category == "grammar" || category.contains("simplepresent")) {
           continue;
         }
 
@@ -229,7 +215,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                         buildCategoryCard(context, "Family Tree", "family tree"), buildCategoryCard(context, "Colors", "colors", isLocked: true), buildCategoryCard(context, "Numbers", "numbers", isLocked: true), buildCategoryCard(context, "Fruits", "fruits", isLocked: true), buildCategoryCard(context, "Animals", "animals", isLocked: true), buildCategoryCard(context, "Vegetables", "vegetables", isLocked: true), buildCategoryCard(context, "Adjectives", "adjectives", isLocked: true), buildCategoryCard(context, "Body Parts", "bodyparts", isLocked: true), buildCategoryCard(context, "Clothes", "clothes", isLocked: true), buildCategoryCard(context, "Countries", "countries", isLocked: true), buildCategoryCard(context, "Verbs", "verbs", isLocked: true), buildCategoryCard(context, "Verbs 2", "verbs2", isLocked: true), buildCategoryCard(context, "Shapes", "shapes", isLocked: true), buildCategoryCard(context, "Emotions", "emotions", isLocked: true), buildCategoryCard(context, "Jobs", "jobs", isLocked: true), buildCategoryCard(context, "Workplaces", "workplaces", isLocked: true), buildCategoryCard(context, "Vehicles", "vehicles", isLocked: true), buildCategoryCard(context, "Households", "households", isLocked: true), buildCategoryCard(context, "Space", "space", isLocked: true),
                       ],
                       [
-                        buildCategoryCard(context, "Alphabet", "alphabet"), buildCategoryCard(context, "Grammar I", "grammar"),
+                        buildCategoryCard(context, "Alphabet", "alphabet"), buildCategoryCard(context, "Grammar I", "grammar"), buildCategoryCard(context, "Simple Present Tense I", "simplepresent"), buildCategoryCard(context, "Simple Present Tense II", "simplepresent2"), buildCategoryCard(context, "Simple Present Tense III", "simplepresent3"), buildCategoryCard(context, "Simple Present Tense IIII", "simplepresent4"),
                       ],
                     ),
                     buildCategorySection([], []),
@@ -301,19 +287,33 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
   }
 
   void updateScore(String category, int score) async {
-    try {
-      // Kullanıcının UID'sini al
-      DocumentReference docRef = FirebaseFirestore.instance
-          .collection("users") // Kullanıcılar koleksiyonu
-          .doc(userId) // Şu anki kullanıcı
-          .collection("results") // Sonuçlar koleksiyonu
-          .doc(category); // Kategori dökümanı
+    if (!mounted) return; // Sayfa kapandıysa işlemi iptal et
 
-      await docRef.set({"score": score}, SetOptions(merge: true));
+    try {
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(userId)
+          .collection("results")
+          .doc(category)
+          .get();
+
+      int existingScore = snapshot.exists ? (snapshot["score"] ?? 0) : 0;
+
+      if (existingScore != score) {  // 🔥 Sadece farklıysa yaz
+        if (!mounted) return; // Tekrar sayfa durumunu kontrol et
+        await FirebaseFirestore.instance
+            .collection("users")
+            .doc(userId)
+            .collection("results")
+            .doc(category)
+            .set({"score": score}, SetOptions(merge: true));
+      }
     } catch (e) {
       print("❌ Score güncellenirken hata oluştu: $e");
     }
   }
+
+
 
   Widget buildCategoryCard(BuildContext context, String title, String category, {bool isLocked = false}) {
     int correct = categoryResults[category]?["correct"] ?? 0;
@@ -329,7 +329,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
 
     // Kategoriler dizisi
     List<String> categoryOrder = [
-      "family tree", "colors", "numbers", "fruits", "animals", "vegetables", "adjectives", "bodyparts", "clothes", "countries", "verbs", "verbs2", "shapes", "emotions", "jobs", "workplaces", "vehicles", "households", "space", "alphabet", "grammar"
+      "family tree", "colors", "numbers", "fruits", "animals", "vegetables", "adjectives", "bodyparts", "clothes", "countries", "verbs", "verbs2", "shapes", "emotions", "jobs", "workplaces", "vehicles", "households", "space",
     ];
 
     // Kilit açma işlemini tek bir fonksiyonla yönetmek
@@ -356,7 +356,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
     Color statusColor = Colors.grey;
     String scoreText = "Puan: ${score ?? 0}";
 
-    if (category.contains("grammar") || category == "alphabet") {
+    if (category == "grammar" || category == "alphabet" || category.contains("simplepresent")) {
     statusText = "";
     scoreText = "";
     }
@@ -419,7 +419,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
               ),
               trailing: GestureDetector(
                 onTap: () {
-                  if ((!(category.contains("grammar") || category == "alphabet")) && !categoryLocked ) {
+                  if ((!(category == ("grammar") || category == "alphabet" || category.contains("simplepresent"))) && !categoryLocked ) {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => LeaderboardScreen(category: category)),
@@ -429,7 +429,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                 child: Icon(
                   categoryLocked
                       ? Icons.lock // Kilitli kategorilerde kilit ikonu göster
-                      : (category.contains("grammar") || category == "alphabet")
+                      : (category.contains("grammar") || category == "alphabet" || category.contains("simplepresent"))
                       ? Icons.arrow_forward_ios // Grammar ve Alphabet için ok ikonu
                       : Icons.leaderboard, // Diğer kategoriler için leaderboard ikonu
                   color: categoryLocked ? Colors.red : Colors.black,

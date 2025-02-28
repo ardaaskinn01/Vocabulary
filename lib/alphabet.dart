@@ -6,6 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 import 'main_page.dart';
 
@@ -149,122 +151,161 @@ class _AlphabetScreenState extends State<AlphabetScreen> {
       ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
       ['h', 'i', 'j', 'k', 'l', 'm', 'n'],
       ['o', 'p', 'q', 'r', 's', 't', 'u'],
-      ['v', 'w', 'x', 'y', 'z']
+      ['v', 'w', 'x', 'y', 'z'],
+      []
     ];
 
     return Scaffold(
       body: isLoading
           ? buildSplashScreen()
           : Stack(
-        children: [
-          PageView.builder(
-            controller: _pageController,
-            itemCount: pages.length,
-            onPageChanged: (int index) {
-              setState(() {
-                _currentPage = index;
-              });
-            },
-            itemBuilder: (context, index) {
-              List<String> words = pages[index];
+              children: [
+                PageView.builder(
+                  controller: _pageController,
+                  itemCount: pages.length,
+                  onPageChanged: (int index) {
+                    setState(() {
+                      _currentPage = index;
+                    });
+                  },
+                  itemBuilder: (context, index) {
+                    List<String> words = pages[index];
 
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Card(
-                      elevation: 4,
-                      margin: const EdgeInsets.all(16.0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: SizedBox(
-                        width: fixedWidth, // Sabit genişlik
-                        height: fixedHeight, // Sabit yükseklik
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            ClipRRect(
+                    final doc = documents[index];
+                    final data = doc.data() as Map<String,
+                        dynamic>?; // 🔹 Firestore verisini Map olarak al
+
+                    if (data == null)
+                      return const SizedBox
+                          .shrink(); // 🔹 Veri null ise boş widget dön
+
+                    final bool isAnswer = data["isAnswer"] ?? false;
+                    final String? videoUrl = data.containsKey("link")
+                        ? data["link"]
+                        : null; // Firestore'dan gelen YouTube linki
+
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Card(
+                            elevation: 4,
+                            margin: const EdgeInsets.all(16.0),
+                            shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
-                              child: FutureBuilder<File?>(
-                                future: _getCachedImage('alphabet_$index.jpg'),
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState == ConnectionState.waiting) {
-                                    return Center(child: CircularProgressIndicator());
-                                  } else if (snapshot.hasData && snapshot.data != null) {
-                                    return Image.file(
-                                      snapshot.data!,
-                                      width: fixedWidth,
-                                      height: fixedHeight,
-                                      fit: BoxFit.contain,
-                                    );
-                                  } else {
-                                    return Center(child: Icon(Icons.broken_image, size: 50));
-                                  }
-                                },
-                              ),
                             ),
+                            child: SizedBox(
+                              width: fixedWidth, // Sabit genişlik
+                              height: fixedHeight, // Sabit yükseklik
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  // **Arka planda resim göster**
+                                  Positioned.fill(
+                                    child: FutureBuilder<File?>(
+                                      future: _getCachedImage(
+                                          'alphabet_$index.jpg'),
+                                      builder: (context, snapshot) {
+                                        if (snapshot.connectionState ==
+                                            ConnectionState.waiting) {
+                                          return const Center(
+                                              child:
+                                                  CircularProgressIndicator());
+                                        } else if (snapshot.hasData &&
+                                            snapshot.data != null) {
+                                          return Image.file(
+                                            snapshot.data!,
+                                            fit: BoxFit
+                                                .cover, // Resmi arka plan olarak göster
+                                          );
+                                        } else {
+                                          return const Icon(Icons.broken_image,
+                                              size: 100);
+                                        }
+                                      },
+                                    ),
+                                  ),
 
-                            // Ses Butonları
-                            Positioned(
-                              right: fixedWidth * 0.05, // Sabit genişliğin %5'i kadar sağdan boşluk
-                              bottom: _currentPage == pages.length - 2
-                                  ? fixedHeight * 0.29 // Son sayfada yükseklik %27
-                                  : fixedHeight * 0.16, // Diğer sayfalarda yükseklik %9
-                              child: Container(
-                                width: fixedWidth * 0.2, // Sabit genişliğin %20'si
-                                height: _currentPage == pages.length - 2
-                                    ? fixedHeight * 0.54 // Son sayfada yükseklik %46
-                                    : fixedHeight * 0.685, // Diğer sayfalarda yükseklik %64
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                  children: words.map((word) {
-                                    return ElevatedButton(
-                                      onPressed: () => _speak(word),
-                                      style: ElevatedButton.styleFrom(
-                                        shape: CircleBorder(),
-                                        padding: EdgeInsets.all(fixedWidth * 0.03), // Buton boyutu sabit genişliğe göre
-                                        backgroundColor: Colors.orange,
+                                  // **Eğer `isAnswer == false` ve `link` varsa merkezde YouTube WebView göster**
+                                  if (!isAnswer &&
+                                      videoUrl != null &&
+                                      videoUrl.isNotEmpty)
+                                    Center(
+                                      child: Container(
+                                        width: 350, // Video boyutu
+                                        height: 225,
+                                        child: WebViewWidget(
+                                          controller: WebViewController()
+                                            ..setJavaScriptMode(
+                                                JavaScriptMode.unrestricted)
+                                            ..loadRequest(Uri.parse(
+                                                "https://www.youtube.com/embed/${YoutubePlayer.convertUrlToId(videoUrl)}?autoplay=1&modestbranding=1&rel=0")),
+                                        ),
                                       ),
-                                      child: Icon(
-                                        Icons.volume_up,
-                                        color: Colors.white,
-                                        size: fixedWidth * 0.05, // Icon boyutu sabit genişliğe göre
+                                    ),
+                                  if (videoUrl == null || videoUrl.isEmpty)
+                                    Positioned(
+                                      right: fixedWidth * 0.05, // Sabit genişliğin %5'i kadar sağdan boşluk
+                                      bottom: _currentPage == pages.length - 2
+                                          ? fixedHeight * 0.25 // Son sayfada yükseklik %27
+                                          : fixedHeight * 0.1075, // Diğer sayfalarda yükseklik %9
+                                      child: Container(
+                                        width: fixedWidth * 0.2, // Sabit genişliğin %20'si
+                                        height: _currentPage == pages.length - 2
+                                            ? fixedHeight * 0.63 // Son sayfada yükseklik %46
+                                            : fixedHeight * 0.78, // Diğer sayfalarda yükseklik %64
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                          children: words.map((word) {
+                                            return ElevatedButton(
+                                              onPressed: () => _speak(word),
+                                              style: ElevatedButton.styleFrom(
+                                                shape: CircleBorder(),
+                                                padding: EdgeInsets.all(fixedWidth * 0.03), // Buton boyutu sabit genişliğe göre
+                                                backgroundColor: Colors.orange,
+                                              ),
+                                              child: Icon(
+                                                Icons.volume_up,
+                                                color: Colors.white,
+                                                size: fixedWidth * 0.05, // Icon boyutu sabit genişliğe göre
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
                                       ),
-                                    );
-                                  }).toList(),
-                                ),
+                                    ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
-              );
-            },
-          ),
 
-          // Ana Menü Butonu
-          Positioned(
-            bottom: _currentPage == pages.length - 2 ? screenHeight * 0.1 : screenHeight * 0.8,
-            left: _currentPage == pages.length - 2 ? screenWidth * 0.43 : screenWidth * 0.82,
-            child: IconButton(
-              icon: Icon(Icons.home, color: Colors.red, size: 34),
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => MainPage()),
-                );
-              },
+                // Ana Menü Butonu
+                Positioned(
+                  bottom: _currentPage == pages.length - 1
+                      ? fixedHeight * 0.15
+                      : fixedHeight * 1.08,
+                  left: _currentPage == pages.length - 1
+                      ? fixedWidth * 0.52
+                      : fixedWidth * 0.96,
+                  child: IconButton(
+                    icon: Icon(Icons.home, color: Colors.red, size: 34),
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => MainPage()),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
-
 
   /// Splash ekranını oluşturan fonksiyon
   Widget buildSplashScreen() {
