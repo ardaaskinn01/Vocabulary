@@ -164,9 +164,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
           // Sağda çıkış yap butonu
           IconButton(
             icon: const Icon(Icons.exit_to_app, color: Colors.white, size: 27),
-            onPressed: () {
-              // Çıkış yapma işlemi
-            },
+            onPressed: _logout,
           ),
         ],
       ),
