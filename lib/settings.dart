@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import 'login_screen.dart';
+
 class SettingsScreen extends StatelessWidget {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -13,7 +15,10 @@ class SettingsScreen extends StatelessWidget {
       await _auth.signOut();
 
       // Başarıyla çıkış yaptıktan sonra anasayfaya yönlendir
-      Navigator.pushReplacementNamed(context, '/login');  // Login ekranına yönlendir
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
     } catch (e) {
       // Hata mesajı
       ScaffoldMessenger.of(context).showSnackBar(
