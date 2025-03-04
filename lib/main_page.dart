@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:ingilizce/settings.dart';
 import 'package:ingilizce/tutorial.dart';
 import 'alphabet.dart';
 import 'category_screen.dart';
@@ -139,11 +140,29 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
           SizedBox(
             width: MediaQuery.of(context).size.width * 1, // Ortalamayı ayarla
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween, // İki butonu uçlara yerleştir
+              mainAxisAlignment: MainAxisAlignment.start, // Sol tarafa hizala
               children: [
-                // Arkadaşlar butonu (En Solda)
+                // Settings butonu (En Solda)
                 IconButton(
-                  icon: const Icon(Icons.group, color: Colors.white, size: 27,),
+                  icon: const Icon(Icons.settings, color: Colors.white, size: 27),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SettingsScreen()),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: MediaQuery.of(context).size.width * 0.5, // Ortalamayı ayarla
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center, // Ortada hizala
+              children: [
+                // Arkadaşlar butonu (Ortada)
+                IconButton(
+                  icon: const Icon(Icons.group, color: Colors.white, size: 27),
                   onPressed: () {
                     showDialog(
                       context: context,
@@ -151,25 +170,11 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                     );
                   },
                 ),
-
-                // Çıkış yapma butonu (En Sağda)
-                IconButton(
-                  icon: const Icon(Icons.exit_to_app, color: Colors.red, size: 27,),
-                  onPressed: _logout,
-                ),
               ],
             ),
           ),
+          SizedBox(width: 10), // Sağ tarafa biraz boşluk bırakmak için
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(text: "Başlangıç"), Tab(text: "Orta"), Tab(text: "İleri"),
-          ],
-        ),
       ),
       body: Column(
         children: [
@@ -212,10 +217,33 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                   children: [
                     buildCategorySection(
                       [
-                        buildCategoryCard(context, "Family Tree", "family tree"), buildCategoryCard(context, "Colors", "colors", isLocked: true), buildCategoryCard(context, "Numbers", "numbers", isLocked: true), buildCategoryCard(context, "Fruits", "fruits", isLocked: true), buildCategoryCard(context, "Animals", "animals", isLocked: true), buildCategoryCard(context, "Vegetables", "vegetables", isLocked: true), buildCategoryCard(context, "Adjectives", "adjectives", isLocked: true), buildCategoryCard(context, "Body Parts", "bodyparts", isLocked: true), buildCategoryCard(context, "Clothes", "clothes", isLocked: true), buildCategoryCard(context, "Countries", "countries", isLocked: true), buildCategoryCard(context, "Verbs", "verbs", isLocked: true), buildCategoryCard(context, "Verbs 2", "verbs2", isLocked: true), buildCategoryCard(context, "Shapes", "shapes", isLocked: true), buildCategoryCard(context, "Emotions", "emotions", isLocked: true), buildCategoryCard(context, "Jobs", "jobs", isLocked: true), buildCategoryCard(context, "Workplaces", "workplaces", isLocked: true), buildCategoryCard(context, "Vehicles", "vehicles", isLocked: true), buildCategoryCard(context, "Households", "households", isLocked: true), buildCategoryCard(context, "Space", "space", isLocked: true),
+                        buildCategoryCard(context, "Family Tree", "family tree"),
+                        buildCategoryCard(context, "Colors", "colors", isLocked: true),
+                        buildCategoryCard(context, "Numbers", "numbers", isLocked: true),
+                        buildCategoryCard(context, "Fruits", "fruits", isLocked: true),
+                        buildCategoryCard(context, "Animals", "animals", isLocked: true),
+                        buildCategoryCard(context, "Vegetables", "vegetables", isLocked: true),
+                        buildCategoryCard(context, "Adjectives", "adjectives", isLocked: true),
+                        buildCategoryCard(context, "Body Parts", "bodyparts", isLocked: true),
+                        buildCategoryCard(context, "Clothes", "clothes", isLocked: true),
+                        buildCategoryCard(context, "Countries", "countries", isLocked: true),
+                        buildCategoryCard(context, "Verbs", "verbs", isLocked: true),
+                        buildCategoryCard(context, "Verbs 2", "verbs2", isLocked: true),
+                        buildCategoryCard(context, "Shapes", "shapes", isLocked: true),
+                        buildCategoryCard(context, "Emotions", "emotions", isLocked: true),
+                        buildCategoryCard(context, "Jobs", "jobs", isLocked: true),
+                        buildCategoryCard(context, "Workplaces", "workplaces", isLocked: true),
+                        buildCategoryCard(context, "Vehicles", "vehicles", isLocked: true),
+                        buildCategoryCard(context, "Households", "households", isLocked: true),
+                        buildCategoryCard(context, "Space", "space", isLocked: true),
                       ],
                       [
-                        buildCategoryCard(context, "Alphabet", "alphabet"), buildCategoryCard(context, "Grammar I", "grammar"), buildCategoryCard(context, "Simple Present Tense I", "simplepresent"), buildCategoryCard(context, "Simple Present Tense II", "simplepresent2"), buildCategoryCard(context, "Simple Present Tense III", "simplepresent3"), buildCategoryCard(context, "Simple Present Tense IIII", "simplepresent4"),
+                        buildCategoryCard(context, "Alphabet", "alphabet"),
+                        buildCategoryCard(context, "Grammar I", "grammar"),
+                        buildCategoryCard(context, "Simple Present Tense I", "simplepresent"),
+                        buildCategoryCard(context, "Simple Present Tense II", "simplepresent2"),
+                        buildCategoryCard(context, "Simple Present Tense III", "simplepresent3"),
+                        buildCategoryCard(context, "Simple Present Tense IIII", "simplepresent4"),
                       ],
                     ),
                     buildCategorySection([], []),

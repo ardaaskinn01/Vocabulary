@@ -7,6 +7,7 @@ import 'login_screen.dart';
 import 'main_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +15,7 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    requestTrackingPermission();
 
     // WebViewPlatform'u platforma göre ayarla
     if (WebViewPlatform.instance is WebKitWebViewPlatform) {
@@ -27,6 +29,15 @@ void main() async {
     print("Firebase initialization error: $e");
   }
   runApp(const MyApp());
+}
+
+void requestTrackingPermission() async {
+  var status = await Permission.appTrackingTransparency.request();
+  if (status.isGranted) {
+    print("İzin verildi!");
+  } else {
+    print("İzin reddedildi.");
+  }
 }
 
 class MyApp extends StatelessWidget {
