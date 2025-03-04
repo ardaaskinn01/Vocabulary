@@ -137,43 +137,37 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
         elevation: 4,
         automaticallyImplyLeading: false,
         actions: [
-          SizedBox(
-            width: MediaQuery.of(context).size.width * 1, // Ortalamayı ayarla
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start, // Sol tarafa hizala
-              children: [
-                // Settings butonu (En Solda)
-                IconButton(
-                  icon: const Icon(Icons.settings, color: Colors.white, size: 27),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SettingsScreen()),
-                    );
-                  },
-                ),
-              ],
+          // Settings butonu (En Solda)
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.white, size: 27),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SettingsScreen()),
+              );
+            },
+          ),
+          // Arkadaşlar butonu (Ortada)
+          Expanded(
+            child: Center(
+              child: IconButton(
+                icon: const Icon(Icons.group, color: Colors.white, size: 27),
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => const FriendsScreen(),
+                  );
+                },
+              ),
             ),
           ),
-          SizedBox(
-            width: MediaQuery.of(context).size.width * 0.5, // Ortalamayı ayarla
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center, // Ortada hizala
-              children: [
-                // Arkadaşlar butonu (Ortada)
-                IconButton(
-                  icon: const Icon(Icons.group, color: Colors.white, size: 27),
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => const FriendsScreen(),
-                    );
-                  },
-                ),
-              ],
-            ),
+          // Sağda çıkış yap butonu
+          IconButton(
+            icon: const Icon(Icons.exit_to_app, color: Colors.white, size: 27),
+            onPressed: () {
+              // Çıkış yapma işlemi
+            },
           ),
-          SizedBox(width: 10), // Sağ tarafa biraz boşluk bırakmak için
         ],
       ),
       body: Column(
@@ -257,6 +251,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
       ),
     );
   }
+
 
   Widget buildCategorySection(
       List<Widget> vocabularyCards, List<Widget> grammarCards) {

@@ -68,20 +68,6 @@ class SettingsScreen extends StatelessWidget {
               ),
 
               const SizedBox(height: 20),
-
-              // Diğer ayarlar
-              TextButton(
-                onPressed: () {
-                  // Diğer ayarlara yönlendirme
-                },
-                child: const Text(
-                  'Diğer Ayarlar',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.orangeAccent,
-                  ),
-                ),
-              ),
             ],
           ),
         ),
