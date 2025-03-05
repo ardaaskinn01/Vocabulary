@@ -75,6 +75,7 @@ flutter:
     - assets/images/tutorial4.png
     - assets/images/tutorial5.png
     - assets/images/tutorial6.png
+    - assets/images/tutorial7.png
 
 flutter_icons:
   android: true

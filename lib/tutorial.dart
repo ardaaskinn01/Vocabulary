@@ -18,6 +18,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
     "assets/images/tutorial4.png",
     "assets/images/tutorial5.png",
     "assets/images/tutorial6.png",
+    "assets/images/tutorial7.png",
   ];
 
   @override

@@ -8,8 +8,20 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
-
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'dart:io';
 import 'main_page.dart';
+
+class AdMobService {
+  static String get interstitialAdUnitId {
+    if (Platform.isAndroid) {
+      return "ca-app-pub-3940256099942544/1033173712"; // Android için AdMob geçiş reklam ID'si
+    } else if (Platform.isIOS) {
+      return "ca-app-pub-3940256099942544/4411468910"; // iOS için AdMob geçiş reklam ID'si
+    }
+    return "";
+  }
+}
 
 class CategoryScreen extends StatefulWidget {
   final String category;
@@ -30,11 +42,37 @@ class _CategoryScreenState extends State<CategoryScreen> {
   bool isLoading = true; // Splash ekranı için değişken
   bool _isTestCompleted = false;
   double _messageOpacity = 0.0;
+  InterstitialAd? _interstitialAd;
+  bool _isAdLoaded = false;
 
   @override
   void initState() {
     super.initState();
     _fetchQuestions();
+    _loadInterstitialAd();
+  }
+
+  void _loadInterstitialAd() {
+    try {
+      print("arda");
+      InterstitialAd.load(
+        adUnitId: AdMobService.interstitialAdUnitId, // Doğru ID'yi kullandığınızdan emin olun!
+        request: AdRequest(),
+        adLoadCallback: InterstitialAdLoadCallback(
+          onAdLoaded: (InterstitialAd ad) {
+            print("✅ Geçiş reklamı başarıyla yüklendi.");
+            _interstitialAd = ad;
+            _isAdLoaded = true;
+          },
+          onAdFailedToLoad: (LoadAdError error) {
+            print("❌ Geçiş reklamı yüklenemedi! Hata: $error");
+            _isAdLoaded = false;
+          },
+        ),
+      );
+    } catch (e) {
+      print("🔥 Reklam yüklerken bir hata oluştu: $e");
+    }
   }
 
   Future<File> _downloadAndSaveImage(String url, String fileName) async {
@@ -68,7 +106,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
     if (user == null) return;
 
     final snapshot = await FirebaseFirestore.instance
-        .collection(widget.category).orderBy("queue").get();
+        .collection(widget.category)
+        .orderBy("queue")
+        .get();
 
     if (snapshot.docs.isNotEmpty) {
       documents = snapshot.docs;
@@ -175,7 +215,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
     try {
       await FirebaseFirestore.instance.runTransaction((transaction) async {
         DocumentSnapshot snapshot = await transaction.get(categoryRef);
-        Map<String, dynamic> data = snapshot.exists ? snapshot.data() as Map<String, dynamic> : {};
+        Map<String, dynamic> data =
+            snapshot.exists ? snapshot.data() as Map<String, dynamic> : {};
 
         // **🔹 Listeyi set olarak kullanarak aynı index'in tekrar eklenmesini önlüyoruz**
         Set<int> correctSet = Set<int>.from(data["correct_answers"] ?? []);
@@ -188,10 +229,13 @@ class _CategoryScreenState extends State<CategoryScreen> {
         }
 
         // **Firestore'a liste olarak güncelle**
-        transaction.set(categoryRef, {
-          "correct_answers": correctSet.toList(),
-          "wrong_answers": wrongSet.toList(),
-        }, SetOptions(merge: true));
+        transaction.set(
+            categoryRef,
+            {
+              "correct_answers": correctSet.toList(),
+              "wrong_answers": wrongSet.toList(),
+            },
+            SetOptions(merge: true));
       });
     } catch (e) {
       print("🔥 Firestore işlemi sırasında hata: $e");
@@ -208,7 +252,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
     await flutterTts.setIosAudioCategory(
       IosTextToSpeechAudioCategory.playback,
       [
-        IosTextToSpeechAudioCategoryOptions.allowBluetooth, IosTextToSpeechAudioCategoryOptions.allowBluetoothA2DP, IosTextToSpeechAudioCategoryOptions.mixWithOthers, IosTextToSpeechAudioCategoryOptions.defaultToSpeaker
+        IosTextToSpeechAudioCategoryOptions.allowBluetooth,
+        IosTextToSpeechAudioCategoryOptions.allowBluetoothA2DP,
+        IosTextToSpeechAudioCategoryOptions.mixWithOthers,
+        IosTextToSpeechAudioCategoryOptions.defaultToSpeaker
       ],
       IosTextToSpeechAudioMode.defaultMode,
     );
@@ -233,175 +280,230 @@ class _CategoryScreenState extends State<CategoryScreen> {
     });
   }
 
+  void _navigateToHome() {
+    print("merhaba");
+    if (_isAdLoaded && _interstitialAd != null) {
+      print("merhaba2");
+      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdDismissedFullScreenContent: (InterstitialAd ad) {
+          ad.dispose(); // Reklam kapatıldığında temizle
+          _loadInterstitialAd(); // Yeni reklam yükle
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => MainPage()),
+          );
+        },
+        onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
+          ad.dispose();
+          _loadInterstitialAd();
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => MainPage()),
+          );
+        },
+      );
+      _interstitialAd!.show(); // Reklamı göster
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => MainPage()),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Sabit boyutlar
     double fixedWidth = 350; // Sabit genişlik
     double fixedHeight = 700; // Sabit yükseklik
 
-    return Scaffold(
-      body: isLoading
-          ? buildSplashScreen() // Yükleme tamamlanana kadar Splash ekranı
-          : Stack(
-        children: [
-          // Sayfa içerikleri
-          PageView.builder(
-            controller: _pageController,
-            itemCount: documents.length,
-            onPageChanged: (int index) {
-              setState(() {
-                _currentPage = index;
-              });
-              if (_currentPage == documents.length - 1) {
-                _showCompletionMessage();
-              }
-            },
-            itemBuilder: (context, index) {
-              if (index >= documents.length) {
-                return const SizedBox.shrink(); // Geçersiz indeks durumunda boş widget döndür
-              }
+    return WillPopScope(
+        onWillPop: () async {
+          _navigateToHome();
+          return false;
+        },
+        child: Scaffold(
+          body: isLoading
+              ? buildSplashScreen() // Yükleme tamamlanana kadar Splash ekranı
+              : Stack(
+                  children: [
+                    // Sayfa içerikleri
+                    PageView.builder(
+                      controller: _pageController,
+                      itemCount: documents.length,
+                      onPageChanged: (int index) {
+                        setState(() {
+                          _currentPage = index;
+                        });
+                        if (_currentPage == documents.length - 1) {
+                          _showCompletionMessage();
+                        }
+                      },
+                      itemBuilder: (context, index) {
+                        if (index >= documents.length) {
+                          return const SizedBox
+                              .shrink(); // Geçersiz indeks durumunda boş widget döndür
+                        }
 
-              final doc = documents[index];
-              final data = doc.data() as Map<String, dynamic>?; // 🔹 Firestore verisini Map olarak al
+                        final doc = documents[index];
+                        final data = doc.data() as Map<String,
+                            dynamic>?; // 🔹 Firestore verisini Map olarak al
 
-              if (data == null) return const SizedBox.shrink(); // 🔹 Veri null ise boş widget dön
+                        if (data == null)
+                          return const SizedBox
+                              .shrink(); // 🔹 Veri null ise boş widget dön
 
-              final bool isAnswer = data["isAnswer"] ?? false;
-              final String? videoUrl = data.containsKey("link") ? data["link"] : null;// Firestore'dan gelen YouTube linki
+                        final bool isAnswer = data["isAnswer"] ?? false;
+                        final String? videoUrl = data.containsKey("link")
+                            ? data["link"]
+                            : null; // Firestore'dan gelen YouTube linki
 
-              return Center(
-                child: Card(
-                  elevation: 4,
-                  margin: const EdgeInsets.all(16.0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: SizedBox(
-                      width: 350, // Sabit genişlik
-                      height: 700, // Sabit yükseklik
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          // **Arka planda resim göster**
-                          Positioned.fill(
-                            child: FutureBuilder<File?>(
-                              future: _getCachedImage('${widget.category}_$index.jpg'),
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState == ConnectionState.waiting) {
-                                  return const Center(child: CircularProgressIndicator());
-                                } else if (snapshot.hasData && snapshot.data != null) {
-                                  return Image.file(
-                                    snapshot.data!,
-                                    fit: BoxFit.contain, // Resmi arka plan olarak göster
-                                  );
-                                } else {
-                                  return const Icon(Icons.broken_image, size: 100);
-                                }
-                              },
+                        return Center(
+                          child: Card(
+                            elevation: 4,
+                            margin: const EdgeInsets.all(16.0),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          ),
-
-                          // **Eğer `isAnswer == false` ve `link` varsa merkezde YouTube WebView göster**
-                          if (!isAnswer && videoUrl != null && videoUrl.isNotEmpty)
-                            Center(
-                              child: Container(
-                                width: 350, // Video boyutu
-                                height: 225,
-                                child: WebViewWidget(
-                                  controller: WebViewController()
-                                    ..setJavaScriptMode(JavaScriptMode.unrestricted)
-                                    ..loadRequest(Uri.parse("https://www.youtube.com/embed/${YoutubePlayer.convertUrlToId(videoUrl)}?autoplay=1&modestbranding=1&rel=0")),
-                                ),
-                              ),
-                            ),
-
-                          // **Eğer cevaplanabilir bir soruysa, şıkları göster**
-                          if (isAnswer) ...[
-                            // AnswerArea'ları sabit bir Container içine al
-                            Positioned(
-                              left: 0,
-                              top: 0,
-                              width: fixedWidth,
-                              height: fixedHeight,
-                              child: Container(
-                                width: fixedWidth,
-                                height: fixedHeight,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: SizedBox(
+                                width: 350, // Sabit genişlik
+                                height: 700, // Sabit yükseklik
                                 child: Stack(
+                                  alignment: Alignment.center,
                                   children: [
-                                    ...buildAnswerAreas(context, index, fixedWidth, fixedHeight),
+                                    // **Arka planda resim göster**
+                                    Positioned.fill(
+                                      child: FutureBuilder<File?>(
+                                        future: _getCachedImage(
+                                            '${widget.category}_$index.jpg'),
+                                        builder: (context, snapshot) {
+                                          if (snapshot.connectionState ==
+                                              ConnectionState.waiting) {
+                                            return const Center(
+                                                child:
+                                                    CircularProgressIndicator());
+                                          } else if (snapshot.hasData &&
+                                              snapshot.data != null) {
+                                            return Image.file(
+                                              snapshot.data!,
+                                              fit: BoxFit
+                                                  .contain, // Resmi arka plan olarak göster
+                                            );
+                                          } else {
+                                            return const Icon(
+                                                Icons.broken_image,
+                                                size: 100);
+                                          }
+                                        },
+                                      ),
+                                    ),
+
+                                    // **Eğer `isAnswer == false` ve `link` varsa merkezde YouTube WebView göster**
+                                    if (!isAnswer &&
+                                        videoUrl != null &&
+                                        videoUrl.isNotEmpty)
+                                      Center(
+                                        child: Container(
+                                          width: 350, // Video boyutu
+                                          height: 225,
+                                          child: WebViewWidget(
+                                            controller: WebViewController()
+                                              ..setJavaScriptMode(
+                                                  JavaScriptMode.unrestricted)
+                                              ..loadRequest(Uri.parse(
+                                                  "https://www.youtube.com/embed/${YoutubePlayer.convertUrlToId(videoUrl)}?autoplay=1&modestbranding=1&rel=0")),
+                                          ),
+                                        ),
+                                      ),
+
+                                    // **Eğer cevaplanabilir bir soruysa, şıkları göster**
+                                    if (isAnswer) ...[
+                                      // AnswerArea'ları sabit bir Container içine al
+                                      Positioned(
+                                        left: 0,
+                                        top: 0,
+                                        width: fixedWidth,
+                                        height: fixedHeight,
+                                        child: Container(
+                                          width: fixedWidth,
+                                          height: fixedHeight,
+                                          child: Stack(
+                                            children: [
+                                              ...buildAnswerAreas(
+                                                  context,
+                                                  index,
+                                                  fixedWidth,
+                                                  fixedHeight),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
                             ),
+                          ),
+                        );
+                      },
+                    ),
+                    // Ana menü butonu ekleme
+                    if (_currentPage == documents.length - 1) ...[
+                      Positioned(
+                        bottom:
+                            fixedHeight * 0.15, // Ekranın altından %14 mesafe
+                        left: fixedWidth * 0.52, // Ortada hizalama
+                        child: Column(
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.home, color: Colors.red, size: 34),
+                              onPressed: _navigateToHome, // Güncellenmiş fonksiyon
+                            ),
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-          // Ana menü butonu ekleme
-          if (_currentPage == documents.length - 1) ...[
-            Positioned(
-              bottom: fixedHeight * 0.15, // Ekranın altından %14 mesafe
-              left: fixedWidth * 0.52, // Ortada hizalama
-              child: Column(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.home, color: Colors.red, size: 34),
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => MainPage()),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ] else ...[
-            Positioned(
-              bottom: fixedHeight * 1.09, // Ekranın altından %14 mesafe
-              left: fixedWidth * 0.97, // Ortada hizalama
-              child: IconButton(
-                icon: Icon(Icons.home, color: Colors.red, size: 34),
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => MainPage()),
-                  );
-                },
-              ),
-            ),
-          ],
+                    ] else ...[
+                      Positioned(
+                        bottom:
+                            fixedHeight * 1.09, // Ekranın altından %14 mesafe
+                        left: fixedWidth * 0.97, // Ortada hizalama
+                        child: IconButton(
+                          icon: Icon(Icons.home, color: Colors.red, size: 34),
+                          onPressed: _navigateToHome, // Güncellenmiş fonksiyon
+                        ),
+                      ),
+                    ],
 
-          // "Testi Tamamladınız!" mesajı
-          if (_isTestCompleted && (widget.category != ("grammar") || widget.category != "alphabet" || !widget.category.contains("simplepresent")))
-            Positioned(
-              bottom: fixedHeight * 1.07, // Ekranın altından %5 mesafe
-              left: fixedWidth * 0.31,
-              child: Center(
-                child: AnimatedOpacity(
-                  opacity: _messageOpacity,
-                  duration: Duration(seconds: 3),
-                  child: Container(
-                    padding: EdgeInsets.all(16),
-                    color: Colors.green,
-                    child: Text(
-                      'Testi Tamamladınız!',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
-                    ),
-                  ),
+                    // "Testi Tamamladınız!" mesajı
+                    if (_isTestCompleted &&
+                        (widget.category != ("grammar") ||
+                            widget.category != "alphabet" ||
+                            !widget.category.contains("simplepresent")))
+                      Positioned(
+                        bottom:
+                            fixedHeight * 1.07, // Ekranın altından %5 mesafe
+                        left: fixedWidth * 0.31,
+                        child: Center(
+                          child: AnimatedOpacity(
+                            opacity: _messageOpacity,
+                            duration: Duration(seconds: 3),
+                            child: Container(
+                              padding: EdgeInsets.all(16),
+                              color: Colors.green,
+                              child: Text(
+                                'Testi Tamamladınız!',
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 18),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-              ),
-            ),
-        ],
-      ),
-    );
+        ));
   }
 
   List<Widget> buildAnswerAreas(
@@ -410,7 +512,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
       return []; // Eğer liste boşsa, hata olmasın diye boş liste döndür.
     }
 
-    Map<String, dynamic>? data = documents[index].data() as Map<String, dynamic>?;
+    Map<String, dynamic>? data =
+        documents[index].data() as Map<String, dynamic>?;
 
     if (data == null) return [];
 
@@ -447,7 +550,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
         case 5:
           answerWidth = fixedWidth * 0.58;
           firstBottom = 0.114;
-         secondBottom = 0.064;
+          secondBottom = 0.064;
           break;
         default:
           answerWidth = fixedWidth * 0.58;
@@ -464,8 +567,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
       answerWidgets.add(buildAnswerArea(
           2, context, secondBottom, 0.36, index, answerWidth, fixedHeight));
     } else {
-
-
       if (data.containsKey("word3")) {
         // Quiz yoksa, eski sistemle çalış
         answerWidgets.add(buildAnswerArea(
@@ -474,10 +575,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
             2, context, 0.208, 0.185, index, fixedWidth * 0.72, fixedHeight));
         answerWidgets.add(buildAnswerArea(
             3, context, 0.39, 0.185, index, fixedWidth * 0.72, fixedHeight));
-      }
-      else {
+      } else {
         answerWidgets.add(buildAnswerArea(
-            1, context, 0.32, 0.185, index, fixedWidth * 0.72, fixedHeight));
+            1, context, 0.322, 0.185, index, fixedWidth * 0.72, fixedHeight));
         answerWidgets.add(buildAnswerArea(
             2, context, 0.208, 0.185, index, fixedWidth * 0.72, fixedHeight));
       }
@@ -492,7 +592,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
       return const SizedBox.shrink();
     }
 
-    Map<String, dynamic>? data = documents[index].data() as Map<String, dynamic>?;
+    Map<String, dynamic>? data =
+        documents[index].data() as Map<String, dynamic>?;
 
     if (data == null) return const SizedBox.shrink();
 
@@ -515,8 +616,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
       child: GestureDetector(
         onTap: selectedAnswers[index] == null
             ? () {
-          checkAnswer(answerIndex, index);
-        }
+                checkAnswer(answerIndex, index);
+              }
             : null,
         child: Stack(
           children: [
@@ -547,16 +648,17 @@ class _CategoryScreenState extends State<CategoryScreen> {
                 child: Icon(
                   selectedAnswers[index] == answerIndex
                       ? (selectedAnswers[index] == correctAnswers[index]
-                      ? Icons.check_circle_outline // ✅ Doğruysa tik işareti
-                      : Icons.cancel_outlined) // ❌ Yanlışsa çarpı işareti
+                          ? Icons.check_circle_outline // ✅ Doğruysa tik işareti
+                          : Icons.cancel_outlined) // ❌ Yanlışsa çarpı işareti
                       : (correctAnswers[index] == answerIndex &&
-                      selectedAnswers[index] != correctAnswers[index]
-                      ? Icons.check_circle_outline // ✅ Yanlış seçildiğinde doğru şıkta tik çıksın
-                      : null),
+                              selectedAnswers[index] != correctAnswers[index]
+                          ? Icons
+                              .check_circle_outline // ✅ Yanlış seçildiğinde doğru şıkta tik çıksın
+                          : null),
                   color: selectedAnswers[index] == answerIndex
                       ? (selectedAnswers[index] == correctAnswers[index]
-                      ? Colors.green
-                      : Colors.red)
+                          ? Colors.green
+                          : Colors.red)
                       : Colors.green,
                   size: 28,
                 ),
@@ -566,8 +668,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
       ),
     );
   }
-
-
 
   /// Splash ekranını oluşturan fonksiyon
   Widget buildSplashScreen() {

@@ -167,6 +167,15 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
             onPressed: _logout,
           ),
         ],
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          tabs: const [
+            Tab(text: "Başlangıç"), Tab(text: "Orta"), Tab(text: "İleri"),
+          ],
+        ),
       ),
       body: Column(
         children: [
