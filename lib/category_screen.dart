@@ -49,12 +49,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
   void initState() {
     super.initState();
     _fetchQuestions();
-    _loadInterstitialAd();
+   // _loadInterstitialAd();
   }
 
-  void _loadInterstitialAd() {
+  /* void _loadInterstitialAd() {
     try {
-      print("arda");
       InterstitialAd.load(
         adUnitId: AdMobService.interstitialAdUnitId, // Doğru ID'yi kullandığınızdan emin olun!
         request: AdRequest(),
@@ -73,7 +72,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
     } catch (e) {
       print("🔥 Reklam yüklerken bir hata oluştu: $e");
     }
-  }
+  } */
 
   Future<File> _downloadAndSaveImage(String url, String fileName) async {
     final directory = await getApplicationDocumentsDirectory();
@@ -281,13 +280,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   void _navigateToHome() {
-    print("merhaba");
     if (_isAdLoaded && _interstitialAd != null) {
-      print("merhaba2");
       _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
         onAdDismissedFullScreenContent: (InterstitialAd ad) {
           ad.dispose(); // Reklam kapatıldığında temizle
-          _loadInterstitialAd(); // Yeni reklam yükle
+          // _loadInterstitialAd(); // Yeni reklam yükle
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => MainPage()),
@@ -295,7 +292,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
         },
         onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
           ad.dispose();
-          _loadInterstitialAd();
+          // _loadInterstitialAd();
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => MainPage()),

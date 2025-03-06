@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:ingilizce/provider.dart';
+import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart'; // Android için
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart'; // iOS için
@@ -27,10 +29,19 @@ void main() async {
       // Android için
       WebViewPlatform.instance = AndroidWebViewPlatform();
     }
+
+    // Provider'ları uygulamanın en üstüne yerleştir
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => PremiumProvider()),
+        ],
+        child: const MyApp(),
+      ),
+    );
   } catch (e) {
     print("Firebase initialization error: $e");
   }
-  runApp(const MyApp());
 }
 
 void requestTrackingPermission() async {
