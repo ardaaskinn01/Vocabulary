@@ -18,8 +18,11 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    requestTrackingPermission();
-    await MobileAds.instance.initialize();
+    final RequestConfiguration requestConfiguration = RequestConfiguration(
+      tagForChildDirectedTreatment: TagForChildDirectedTreatment.yes,
+    );
+
+    MobileAds.instance.updateRequestConfiguration(requestConfiguration);
 
     // WebViewPlatform'u platforma göre ayarla
     if (WebViewPlatform.instance is WebKitWebViewPlatform) {
@@ -41,15 +44,6 @@ void main() async {
     );
   } catch (e) {
     print("Firebase initialization error: $e");
-  }
-}
-
-void requestTrackingPermission() async {
-  var status = await Permission.appTrackingTransparency.request();
-  if (status.isGranted) {
-    print("İzin verildi!");
-  } else {
-    print("İzin reddedildi.");
   }
 }
 

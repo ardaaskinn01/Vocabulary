@@ -77,6 +77,7 @@ flutter:
     - assets/images/tutorial5.png
     - assets/images/tutorial6.png
     - assets/images/tutorial7.png
+    - assets/images/youtube_placeholder.png
 
 flutter_icons:
   android: true

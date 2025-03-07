@@ -9,7 +9,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'dart:io';
 import 'main_page.dart';
 
 class AdMobService {
@@ -49,7 +48,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
   void initState() {
     super.initState();
     _fetchQuestions();
-   // _loadInterstitialAd();
+    // _loadInterstitialAd();
   }
 
   /* void _loadInterstitialAd() {
@@ -113,7 +112,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
       documents = snapshot.docs;
       correctAnswers = documents.map((doc) => doc["answer"] as int).toList();
       selectedAnswers = List.filled(documents.length, null);
-      await _fetchUserAnswers(user!.uid);
+      await _fetchUserAnswers(user.uid);
       // Listeleri başla
       await _preloadImages();
       setState(() {
@@ -279,6 +278,80 @@ class _CategoryScreenState extends State<CategoryScreen> {
     });
   }
 
+  void showParentalGate(BuildContext context, String youtubeUrl) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Arka plana tıklayıp kapatma engellenir
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0), // Yuvarlatılmış köşeler
+          ),
+          title: const Text(
+            "Ebeveyn Onayı",
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.orangeAccent, // Başlık rengi
+            ),
+          ),
+          content: const Text(
+            "Bu içeriğe erişmek için 13 yaşından büyük olmanız veya ebeveyn izni almanız gerekmektedir. Devam etmek istiyor musunuz?",
+            style: TextStyle(
+              fontSize: 16,
+              height: 1.5, // Satırlar arası mesafe
+              color: Colors.black87, // Yazı rengi
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Kullanıcı iptal ederse diyalog kapanır
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.redAccent, textStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              child: const Text("Hayır"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Diyalog kapanır
+                openYouTubeVideo(context, youtubeUrl); // YouTube açılır
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.green, textStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              child: const Text("Evet, Devam Et"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void openYouTubeVideo(BuildContext context, String youtubeUrl) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(title: const Text("YouTube Video")),
+          body: WebViewWidget(
+            controller: WebViewController()
+              ..setJavaScriptMode(JavaScriptMode.unrestricted)
+              ..loadRequest(Uri.parse(
+                  "https://www.youtube.com/embed/${YoutubePlayer.convertUrlToId(youtubeUrl)}?autoplay=1&modestbranding=1&rel=0")),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _navigateToHome() {
     if (_isAdLoaded && _interstitialAd != null) {
       _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
@@ -403,14 +476,23 @@ class _CategoryScreenState extends State<CategoryScreen> {
                                         videoUrl.isNotEmpty)
                                       Center(
                                         child: Container(
-                                          width: 350, // Video boyutu
+                                          width: 350,
                                           height: 225,
-                                          child: WebViewWidget(
-                                            controller: WebViewController()
-                                              ..setJavaScriptMode(
-                                                  JavaScriptMode.unrestricted)
-                                              ..loadRequest(Uri.parse(
-                                                  "https://www.youtube.com/embed/${YoutubePlayer.convertUrlToId(videoUrl)}?autoplay=1&modestbranding=1&rel=0")),
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              // Parental Gate aç, onay alınırsa YouTube videosunu göster
+                                              showParentalGate(
+                                                  context, videoUrl);
+                                            },
+                                            child: Stack(
+                                              alignment: Alignment.center,
+                                              children: [
+                                                Image.asset(
+                                                    "assets/images/youtube_placeholder.png",
+                                                    fit: BoxFit
+                                                        .fill), // YouTube butonu gibi bir placeholder ekleyebilirsin
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -455,8 +537,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
                         child: Column(
                           children: [
                             IconButton(
-                              icon: Icon(Icons.home, color: Colors.red, size: 34),
-                              onPressed: _navigateToHome, // Güncellenmiş fonksiyon
+                              icon:
+                                  Icon(Icons.home, color: Colors.red, size: 34),
+                              onPressed:
+                                  _navigateToHome, // Güncellenmiş fonksiyon
                             ),
                           ],
                         ),
