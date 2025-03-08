@@ -16,13 +16,12 @@
 		<string>Learning English Vocabulary</string>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
-		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>
-		<string>2.0.5</string>
+		<string>2.0.6</string>
 		<key>CFBundleSignature</key>
 		<string>????</string>
 		<key>CFBundleVersion</key>
-		<string>19</string>
+		<string>20</string>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
 		<key>UILaunchStoryboardName</key>
@@ -43,30 +42,26 @@
 			<string>UIInterfaceOrientationLandscapeRight</string>
 		</array>
 
-        <!-- 📌 AdMob Reklam ID (Gerekli) -->
+		<!-- 📌 AdMob Reklam ID -->
 		<key>GADApplicationIdentifier</key>
-        <string>ca-app-pub-2709564947127483~7543663690</string>
+		<string>ca-app-pub-2709564947127483~7543663690</string>
 
-        <key>GADIsAdManagerApp</key>
-        <true/>
-        <key>GADApplicationIdentifier</key>
-        <string>ca-app-pub-2709564947127483~7543663690</string>
-        <key>GADChildDirectedTreatment</key>
-        <true/>
-        <key>GADMaxAdContentRating</key>
-        <string>G</string>
+		<!-- 📌 AdMob Çocuk Modu -->
+		<key>GADIsAdManagerApp</key>
+		<true/>
+		<key>GADChildDirectedTreatment</key>
+		<true/>
+		<key>GADMaxAdContentRating</key>
+		<string>G</string>
 
-        <!-- 📌 Apple’ın SKAdNetwork ID'si (Reklam Performans Ölçümü İçin) -->
-        <key>SKAdNetworkItems</key>
-        <array>
-            <dict>
-                <key>SKAdNetworkIdentifier</key>
-                <string>cstr6suwn9.skadnetwork</string>
-            </dict>
-        </array>
-
-        <key>FirebaseAppDelegateProxyEnabled</key>
-        <false/>
+		<!-- 📌 SKAdNetwork (Apple'ın Reklam Sistemi) -->
+		<key>SKAdNetworkItems</key>
+		<array>
+			<dict>
+				<key>SKAdNetworkIdentifier</key>
+				<string>cstr6suwn9.skadnetwork</string>
+			</dict>
+		</array>
 
 		<key>CADisableMinimumFrameDurationOnPhone</key>
 		<true/>
@@ -77,13 +72,13 @@
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
 		<key>ITSAppUsesNonExemptEncryption</key>
-        <false/>
-        <key>FirebaseAppDelegateProxyEnabled</key>
-        <false/>
-        <key>NSAppTransportSecurity</key>
-        <dict>
-            <key>NSAllowsArbitraryLoads</key>
-            <true/>
-        </dict>
+		<false/>
+		<key>FirebaseAppDelegateProxyEnabled</key>
+		<false/>
+		<key>NSAppTransportSecurity</key>
+		<dict>
+			<key>NSAllowsArbitraryLoads</key>
+			<true/>
+		</dict>
 	</dict>
 </plist>
