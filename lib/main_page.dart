@@ -2,8 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:ingilizce/premium.dart';
+import 'package:ingilizce/provider.dart';
 import 'package:ingilizce/settings.dart';
 import 'package:ingilizce/tutorial.dart';
+import 'package:provider/provider.dart';
 import 'alphabet.dart';
 import 'category_screen.dart';
 import 'friends.dart';
@@ -131,6 +134,10 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
+    // Doğru BuildContext ile Provider'a erişim
+    final premiumProvider = Provider.of<PremiumProvider>(context);
+    bool isPremium = premiumProvider.isPremium;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.orangeAccent,
@@ -173,7 +180,9 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
           tabs: const [
-            Tab(text: "Başlangıç"), Tab(text: "Orta"), Tab(text: "İleri"),
+            Tab(text: "Başlangıç"),
+            Tab(text: "Orta"),
+            Tab(text: "İleri"),
           ],
         ),
       ),
@@ -200,7 +209,6 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
             ),
           ),
 
-          /// ✅ **FutureBuilder ile Tek Seferlik Okuma**
           Expanded(
             child: StreamBuilder<Map<String, Map<String, dynamic>>>(
               stream: _fetchUserResultsStream(),
@@ -211,11 +219,13 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                   return Center(child: Text("Hata oluştu: ${snapshot.error}"));
                 }
 
+                // Kullanıcının sonuçlarını al
                 categoryResults = snapshot.data ?? {};
 
                 return TabBarView(
                   controller: _tabController,
                   children: [
+                    // Başlangıç seviyesi (her zaman açık)
                     buildCategorySection(
                       [
                         buildCategoryCard(context, "Family Tree", "family tree"),
@@ -247,8 +257,30 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                         buildCategoryCard(context, "Simple Present Tense IIII", "simplepresent4"),
                       ],
                     ),
-                    buildCategorySection([], []),
-                    buildCategorySection([], []),
+
+                    // Orta seviye (premium kontrolü)
+                    isPremium
+                        ? buildCategorySection(
+                      [
+                        buildCategoryCard(context, "Intermediate 1", "intermediate1"),
+                        buildCategoryCard(context, "Intermediate 2", "intermediate2"),
+                        // Diğer orta seviye kategoriler
+                      ],
+                      [],
+                    )
+                        : _buildLockedTab(),
+
+                    // İleri seviye (premium kontrolü)
+                    isPremium
+                        ? buildCategorySection(
+                      [
+                        buildCategoryCard(context, "Advanced 1", "advanced1"),
+                        buildCategoryCard(context, "Advanced 2", "advanced2"),
+                        // Diğer ileri seviye kategoriler
+                      ],
+                      [],
+                    )
+                        : _buildLockedTab(),
                   ],
                 );
               },
@@ -259,6 +291,43 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
     );
   }
 
+  Widget _buildLockedTab() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.lock, size: 50, color: Colors.red),
+          const SizedBox(height: 16),
+          const Text(
+            "Bu içeriğe erişmek için premium hesap gereklidir.",
+            style: TextStyle(fontSize: 18, color: Colors.grey),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orangeAccent,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+            ),
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                isDismissible: true,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                builder: (context) => PremiumPurchaseScreen(),
+              );
+            },
+            child: const Text(
+              "Premium Satın Al",
+              style: TextStyle(fontSize: 18, color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget buildCategorySection(
       List<Widget> vocabularyCards, List<Widget> grammarCards) {
