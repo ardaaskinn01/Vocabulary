@@ -18,36 +18,30 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   void _login() async {
-    String username = _emailController.text.trim();
-    String email = "$username@example.com";
+    String email = _emailController.text.trim();
     String password = _passwordController.text.trim();
 
-    if (username.isNotEmpty && password.isNotEmpty) {
+    if (email.isNotEmpty && password.isNotEmpty) {
       try {
         UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: email,
           password: password,
         );
 
-        // Kullanıcının Firestore'daki verisini güncelle (merge: true kullan)
-         FirebaseFirestore.instance
+        // Kullanıcının Firestore'daki verisini güncelle
+        FirebaseFirestore.instance
             .collection("users")
             .doc(userCredential.user!.uid)
             .set({
           "lastLogin": FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true)); // 🔹 Eğer belge yoksa oluşturur, varsa günceller
+        }, SetOptions(merge: true));
 
         if (!mounted) return;
 
-        Future.delayed(Duration(milliseconds: 500), () {
-          if (mounted) {
-            print("Navigating to MainPage...");
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const MainPage()),
-            );
-          }
-        });
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MainPage()),
+        );
 
       } catch (e) {
         if (!mounted) return;
@@ -56,9 +50,8 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } else {
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Kullanıcı adı veya şifre boş bırakılamaz.")),
+        const SnackBar(content: Text("E-posta veya şifre boş bırakılamaz.")),
       );
     }
   }
@@ -92,9 +85,10 @@ class _LoginScreenState extends State<LoginScreen> {
             TextField(
               controller: registerEmailController,
               decoration: const InputDecoration(
-                labelText: "Kullanıcı Adı",
+                labelText: "E-posta",
                 border: OutlineInputBorder(),
               ),
+              keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 16),
             TextField(
@@ -111,35 +105,17 @@ class _LoginScreenState extends State<LoginScreen> {
           TextButton(
             onPressed: () async {
               String name = registerNameController.text.trim();
-              String username = registerEmailController.text.trim();
+              String email = registerEmailController.text.trim();
               String password = registerPasswordController.text.trim();
 
-              if (name.isNotEmpty && username.isNotEmpty && password.isNotEmpty) {
+              if (name.isNotEmpty && email.isNotEmpty && password.isNotEmpty) {
                 try {
-                  // 🔍 Aynı isme sahip kullanıcı var mı kontrol et
-                  var existingUser = await FirebaseFirestore.instance
-                      .collection("users")
-                      .where("name", isEqualTo: name)
-                      .get();
-
-                  if (existingUser.docs.isNotEmpty) {
-                    // 🚨 Aynı isimde kullanıcı varsa hata ver
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Bu isim zaten kullanılıyor, lütfen başka bir isim seçin.")),
-                    );
-                    return;
-                  }
-
-                  // 📧 E-posta oluştur
-                  String email = "$username@example.com";
-
-                  // 🔹 Kullanıcıyı Firebase Auth ile kaydet
                   UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
                     email: email,
                     password: password,
                   );
 
-                  // 📝 Firestore'a kullanıcı bilgilerini kaydet
+                  // Firestore'a kullanıcı bilgilerini kaydet
                   await FirebaseFirestore.instance
                       .collection("users")
                       .doc(userCredential.user!.uid)
@@ -150,20 +126,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   });
 
                   if (!mounted) return;
-                  Navigator.pop(context); // Dialog'u kapat
+                  Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Kayıt başarılı!")),
                   );
                 } catch (e) {
-                  if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text("Kayıt başarısız: $e")),
                   );
                 }
               } else {
-                if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("İsim, kullanıcı adı veya şifre boş bırakılamaz.")),
+                  const SnackBar(content: Text("İsim, e-posta veya şifre boş bırakılamaz.")),
                 );
               }
             },
@@ -171,7 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context); // Dialog'u kapat
+              Navigator.pop(context);
             },
             child: const Text("İptal"),
           ),
@@ -179,12 +153,58 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
 
-    if (!mounted) return;
     setState(() {
       _isLoading = false;
     });
   }
 
+  void _resetPasswordDialog() {
+    final TextEditingController resetEmailController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Şifre Sıfırla"),
+        content: TextField(
+          controller: resetEmailController,
+          decoration: const InputDecoration(
+            labelText: "E-posta adresinizi girin",
+            border: OutlineInputBorder(),
+          ),
+          keyboardType: TextInputType.emailAddress,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              String email = resetEmailController.text.trim();
+              if (email.isNotEmpty) {
+                try {
+                  await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Şifre sıfırlama e-postası gönderildi!")),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Hata: $e")),
+                  );
+                }
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Lütfen e-posta adresinizi girin.")),
+                );
+              }
+            },
+            child: const Text("Gönder"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("İptal"),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -197,7 +217,7 @@ class _LoginScreenState extends State<LoginScreen> {
             right: 0,
             child: Image.asset(
               "assets/images/bg.jpg",
-              height: MediaQuery.of(context).size.height * 0.4, // Üst kısma yerleşim
+              height: MediaQuery.of(context).size.height * 0.4,
               fit: BoxFit.cover,
             ),
           ),
@@ -236,12 +256,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextField(
                       controller: _emailController,
                       decoration: InputDecoration(
-                        labelText: "Kullanıcı Adı",
+                        labelText: "E-posta",
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        prefixIcon: const Icon(Icons.account_circle_sharp),
+                        prefixIcon: const Icon(Icons.email),
                         filled: true,
                         fillColor: Colors.grey.shade100,
                       ),
+                      keyboardType: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: 16),
                     TextField(
@@ -271,13 +292,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: TextStyle(fontSize: 18, color: Colors.white),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: _resetPasswordDialog,
+                      child: const Text("Şifremi Unuttum"),
+                    ),
                     TextButton(
                       onPressed: _showRegisterDialog,
-                      child: const Text(
-                        "Hesabınız yok mu? Kayıt olun.",
-                        style: TextStyle(color: Colors.deepPurple, fontSize: 16),
-                      ),
+                      child: const Text("Hesabınız yok mu? Kayıt olun."),
                     ),
                   ],
                 ),

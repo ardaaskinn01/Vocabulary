@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -6,11 +7,12 @@ import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart'; // Android için
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart'; // iOS için
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
+import 'firebase_options.dart';
 import 'login_screen.dart';
 import 'main_page.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +20,7 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+
     final RequestConfiguration requestConfiguration = RequestConfiguration(
       tagForChildDirectedTreatment: TagForChildDirectedTreatment.yes,
     );
@@ -26,12 +29,13 @@ void main() async {
 
     // WebViewPlatform'u platforma göre ayarla
     if (WebViewPlatform.instance is WebKitWebViewPlatform) {
-      // iOS için
       WebViewPlatform.instance = WebKitWebViewPlatform();
     } else {
-      // Android için
       WebViewPlatform.instance = AndroidWebViewPlatform();
     }
+
+    // Avatarları kopyalama işlemini başlat
+    await _copyAvatarsToAppDir();
 
     // Provider'ları uygulamanın en üstüne yerleştir
     runApp(
@@ -47,6 +51,48 @@ void main() async {
   }
 }
 
+// assets/avatars içindeki tüm görselleri uygulama dizinine kopyalar
+Future<void> _copyAvatarsToAppDir() async {
+  try {
+    final appDir = await getApplicationDocumentsDirectory();
+    final avatarDir = Directory('${appDir.path}/avatars');
+
+    if (!await avatarDir.exists()) {
+      await avatarDir.create(recursive: true);
+    }
+
+    List<String> avatarFiles = [
+      "avatar1.jpg",
+      "avatar2.jpg",
+      "avatar3.jpg",
+      "avatar4.jpg",
+      "avatar5.jpg",
+      "avatar6.jpg",
+      "avatar7.jpg",
+      "avatar8.jpg",
+      "avatar9.jpg",
+      "avatar10.jpg",
+      "default.png"
+    ];
+
+    for (String fileName in avatarFiles) {
+      final assetPath = 'assets/avatars/$fileName';
+      final localFile = File('${avatarDir.path}/$fileName');
+
+      if (!await localFile.exists()) {
+        final byteData = await rootBundle.load(assetPath);
+        final buffer = byteData.buffer.asUint8List();
+        await localFile.writeAsBytes(buffer);
+        print("✅ $fileName kopyalandı.");
+      } else {
+        print("✔ $fileName zaten mevcut, atlanıyor.");
+      }
+    }
+  } catch (e) {
+    print("⚠ Avatar kopyalama hatası: $e");
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -58,7 +104,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const SplashScreen(), // SplashScreen ana sayfa olarak atanıyor
+      home: const SplashScreen(),
     );
   }
 }
@@ -106,28 +152,18 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Mavi arka plan
           Positioned.fill(
-            child: Container(
-              color: Colors.blue, // Mavi arka plan rengi
-            ),
+            child: Container(color: Colors.blue),
           ),
-          // Yükleniyor spinner'ı ve yazı
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircularProgressIndicator(
-                  color: Colors.white, // Spinner rengi beyaz
-                ),
+                CircularProgressIndicator(color: Colors.white),
                 const SizedBox(height: 20),
                 const Text(
                   "Oturum Yükleniyor...",
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white, // Yazı rengi beyaz
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ],
             ),

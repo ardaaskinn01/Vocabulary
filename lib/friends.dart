@@ -111,7 +111,11 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
           itemBuilder: (context, index) {
             var friend = friends[index];
             String friendId = friend.id;
-            String friendName = friend["name"];
+            String? friendName = friend["name"];
+
+            if (friendName == null || friendName.isEmpty) {
+              return const SizedBox.shrink(); // Eğer isim yoksa, listeye ekleme
+            }
 
             return ListTile(
               leading: const Icon(Icons.person, color: Colors.orangeAccent),
@@ -223,13 +227,16 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
                   }
 
                   var users = userSnapshot.data!.docs.where((user) {
-                    String currentUserId = user.id;
-                    String currentUserName = user['name'].toLowerCase();
+                    final data = user.data() as Map<String, dynamic>?; // 🔹 Veriyi Map olarak al
 
-                    // Kendi profilimizi, arkadaşlarımızı ve arama sorgusunu filtrele
-                    return currentUserId != userId &&
-                        !friendIds.contains(currentUserId) &&
-                        currentUserName.contains(_searchQuery);
+                    if (data == null || !data.containsKey('name') || data['name'] == null || data['name'].toString().isEmpty) {
+                      return false; // İsmi olmayanları gösterme
+                    }
+
+                    String currentUserId = user.id;
+                    String currentUserName = data['name'].toLowerCase();
+
+                    return currentUserId != userId && !friendIds.contains(currentUserId) && currentUserName.contains(_searchQuery);
                   }).toList();
 
                   if (users.isEmpty) {
@@ -294,7 +301,12 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
           return const Center(child: Text("Gelen istek yok."));
         }
 
-        var requests = snapshot.data!.docs;
+        var requests = snapshot.data!.docs.where((request) => request["name"] != null && request["name"].toString().isNotEmpty).toList();
+
+        if (requests.isEmpty) {
+          return const Center(child: Text("Gelen istek yok."));
+        }
+
         return ListView.builder(
           itemCount: requests.length,
           itemBuilder: (context, index) {
@@ -307,14 +319,12 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Kabul Et Butonu
                   IconButton(
                     icon: const Icon(Icons.check, color: Colors.green),
                     onPressed: () {
                       _acceptFriendRequest(senderId, senderName);
                     },
                   ),
-                  // Reddet Butonu
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.red),
                     onPressed: () {
@@ -329,6 +339,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
       },
     );
   }
+
 
   /// 🔹 Arkadaşlık İsteği Gönderme
   void _sendFriendRequest(String friendId, String friendName, String myName) async {

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ingilizce/premium.dart';
+import 'package:ingilizce/profile.dart';
 import 'package:ingilizce/provider.dart';
 import 'package:ingilizce/settings.dart';
 import 'package:ingilizce/tutorial.dart';
@@ -12,6 +13,7 @@ import 'category_screen.dart';
 import 'friends.dart';
 import 'leaderboard.dart';
 import 'login_screen.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({Key? key}) : super(key: key);
@@ -134,7 +136,6 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    // Doğru BuildContext ile Provider'a erişim
     final premiumProvider = Provider.of<PremiumProvider>(context);
     bool isPremium = premiumProvider.isPremium;
 
@@ -144,16 +145,17 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
         elevation: 4,
         automaticallyImplyLeading: false,
         actions: [
-          // Settings butonu (En Solda)
+          // Profil Butonu (En Solda)
           IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white, size: 27),
+            icon: const Icon(Icons.person, color: Colors.white, size: 27),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => SettingsScreen()),
+                MaterialPageRoute(builder: (context) => ProfileScreen()),
               );
             },
           ),
+
           // Arkadaşlar butonu (Ortada)
           Expanded(
             child: Center(
@@ -168,10 +170,16 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
               ),
             ),
           ),
-          // Sağda çıkış yap butonu
+
+          // Ayarlar butonu (En Sağda)
           IconButton(
-            icon: const Icon(Icons.exit_to_app, color: Colors.white, size: 27),
-            onPressed: _logout,
+            icon: const Icon(Icons.settings, color: Colors.white, size: 27),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SettingsScreen()),
+              );
+            },
           ),
         ],
         bottom: TabBar(
@@ -186,7 +194,8 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
           ],
         ),
       ),
-      body: Column(
+
+  body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -396,7 +405,11 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
           .doc(category)
           .get();
 
-      int existingScore = snapshot.exists ? (snapshot["score"] ?? 0) : 0;
+      // Eğer belge hiç yoksa veya score alanı tanımlı değilse, varsayılan değeri 0 olarak ayarla
+      Map<String, dynamic>? data = snapshot.data() as Map<String, dynamic>?;
+      int existingScore = data != null && data.containsKey("score") ? data["score"] : 0;
+
+      print("📌 Mevcut skor: $existingScore, Yeni skor: $score"); // Debugging için
 
       if (existingScore != score) {  // 🔥 Sadece farklıysa yaz
         if (!mounted) return; // Tekrar sayfa durumunu kontrol et
@@ -406,11 +419,16 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
             .collection("results")
             .doc(category)
             .set({"score": score}, SetOptions(merge: true));
+
+        print("✅ Firestore güncellendi!"); // Firestore yazma işlemi başarılı mı?
+      } else {
+        print("ℹ️ Skor zaten güncel, değişiklik yapılmadı.");
       }
     } catch (e) {
       print("❌ Score güncellenirken hata oluştu: $e");
     }
   }
+
 
 
 
@@ -456,8 +474,8 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
     String scoreText = "Puan: ${score ?? 0}";
 
     if (category == "grammar" || category == "alphabet" || category.contains("simplepresent")) {
-    statusText = "";
-    scoreText = "";
+      statusText = "";
+      scoreText = "";
     }
     else if (!categoryLocked) {
       if (solved > 0 && solved < total) {
@@ -468,6 +486,10 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
         statusColor = Colors.green;
       }
     }
+
+    // Başlığın karakter uzunluğunu kontrol et
+    int maxTitleLength = 15; // Başlığın maksimum karakter uzunluğu
+    bool isTitleLong = title.length > maxTitleLength;
 
     return GestureDetector(
       onTap: () {
@@ -493,7 +515,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
           children: [
             ListTile(
               contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              title: Text(
+              title: AutoSizeText(
                 title,
                 style: TextStyle(
                   fontSize: 21,
@@ -501,6 +523,10 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                   color: Colors.orange.shade600,
                   letterSpacing: 0.8,
                 ),
+                maxLines: isTitleLong ? 3 : 1,  // Uzun başlıklar için 2 satır, kısa başlıklar için 1 satır
+                overflow: TextOverflow.visible,  // Taşan metinler için alt satıra geç
+                minFontSize: 16,  // Fontun küçülebileceği minimum boyut
+                stepGranularity: 1,  // Font boyutunun küçülme adımı
               ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

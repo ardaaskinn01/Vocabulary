@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -154,14 +156,38 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
       return;
     }
 
-    final PurchaseParam purchaseParam = PurchaseParam(productDetails: _products.first);
-    _inAppPurchase.buyConsumable(purchaseParam: purchaseParam); // 📌 Abonelik için değiştirdik
+    final ProductDetails product = _products.firstWhere(
+          (product) => product.id == 'premiumaccess1', // Google Play ürün kimliğine göre seçim yapalım
+      orElse: () => _products.first,
+    );
+
+    final PurchaseParam purchaseParam = PurchaseParam(productDetails: product);
+    _inAppPurchase.buyConsumable(purchaseParam: purchaseParam);
   }
+
 
   // 📌 **Ödemeyi doğrula ve Firestore'a kaydet**
   Future<void> _verifyPurchase(PurchaseDetails purchase) async {
     if (userId == null) return;
 
-    await _firestore.collection("users").doc(userId).update({"isPremium": true});
+    try {
+      final HttpsCallable callable =
+      FirebaseFunctions.instance.httpsCallable('verifyPurchase');
+
+      final result = await callable.call({
+        "userId": userId,
+        "purchaseToken": purchase.verificationData.serverVerificationData,
+        "platform": Platform.isAndroid ? "android" : "ios",
+      });
+
+      if (result.data['success']) {
+        print("✅ Satın alma doğrulandı!");
+        await _firestore.collection("users").doc(userId).update({"isPremium": true});
+      } else {
+        print("❌ Satın alma doğrulanamadı.");
+      }
+    } catch (e) {
+      print("🔥 Hata: $e");
+    }
   }
 }

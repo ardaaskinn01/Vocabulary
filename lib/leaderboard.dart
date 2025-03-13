@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 class LeaderboardScreen extends StatefulWidget {
   final String category;
@@ -25,21 +27,15 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       await FirebaseFirestore.instance.collection('users').get();
 
       List<Map<String, dynamic>> tempLeaderboard = [];
-
-      // Tüm Firestore çağrılarını paralel çalıştır
       List<Future<void>> futures = [];
 
       for (var userDoc in usersSnapshot.docs) {
         futures.add(_fetchUserScore(userDoc, tempLeaderboard));
       }
 
-      // Tüm işlemleri paralel olarak çalıştır
       await Future.wait(futures);
-
-      // Skorları büyükten küçüğe sırala
       tempLeaderboard.sort((a, b) => b['score'].compareTo(a['score']));
 
-      // ❗ Ekranın hala aktif olup olmadığını kontrol et
       if (mounted) {
         setState(() {
           leaderboardData = tempLeaderboard;
@@ -50,11 +46,18 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     }
   }
 
-// Kullanıcının skorunu alıp listeye ekleyen fonksiyon
   Future<void> _fetchUserScore(DocumentSnapshot userDoc, List<Map<String, dynamic>> tempLeaderboard) async {
     try {
       String userId = userDoc.id;
-      String username = userDoc.data() != null && userDoc['name'] != null ? userDoc['name'] : 'Bilinmeyen';
+      String username = userDoc.data() != null && userDoc['name'] != null
+          ? userDoc['name']
+          : 'Bilinmeyen';
+
+      // Avatar yoksa -1 olarak ata
+      var userData = userDoc.data() as Map<String, dynamic>?; // Veriyi Map olarak alıyoruz
+      int avatarNumber = userData != null && userData.containsKey('avatarNumber')
+          ? userData['avatarNumber']
+          : -1; // Eğer 'avatarNumber' yoksa -1 olarak ata
 
       DocumentSnapshot resultSnapshot = await FirebaseFirestore.instance
           .collection('users')
@@ -63,17 +66,25 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           .doc(widget.category)
           .get();
 
-      if (!resultSnapshot.exists) return;
+      if (!resultSnapshot.exists) {
+        // Skor bilgisi olmayanları dahil etme
+        return;
+      }
 
       Map<String, dynamic>? resultData = resultSnapshot.data() as Map<String, dynamic>?;
 
-      int score = resultData != null && resultData.containsKey('score') && resultData['score'] is int
-          ? resultData['score']
-          : 0;
+      // Skor yoksa, kullanıcıyı ekleme
+      if (resultData == null || !resultData.containsKey('score') || resultData['score'] == null) {
+        return;
+      }
 
+      int score = resultData['score'] is int ? resultData['score'] : 0;
+
+      // Tüm kullanıcıları skorlarına bakarak listeye ekle
       tempLeaderboard.add({
         'username': username,
         'score': score,
+        'avatarNumber': avatarNumber, // Avatar bilgisi olmasa bile -1 olarak ekle
       });
     } catch (e) {
       print("⚠ Kullanıcı skoru alınırken hata oluştu: $e");
@@ -81,14 +92,35 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 
 
+
+  /// **📌 Avatarları cache içinden kontrol eden fonksiyon**
+  Future<ImageProvider> _getUserAvatar(int avatarNumber) async {
+    if (avatarNumber == -1) {
+      return const AssetImage('assets/avatars/default.png'); // **Varsayılan avatar**
+    }
+
+    final directory = await getApplicationDocumentsDirectory();
+    final avatarPath = '${directory.path}/avatar$avatarNumber.jpg';
+    final avatarFile = File(avatarPath);
+
+    if (await avatarFile.exists()) {
+      return FileImage(avatarFile);
+    } else {
+      return const AssetImage('assets/avatars/default.png'); // **Eğer dosya yoksa default göster**
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("${widget.category.toUpperCase()} Kategorisi", style: TextStyle(fontWeight: FontWeight.bold),),
+        title: Text(
+          "${widget.category.toUpperCase()} Kategorisi",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.orange.shade700,
       ),
-      backgroundColor: Colors.yellow.shade100, // Soluk sarı arka plan
+      backgroundColor: Colors.yellow.shade100,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -110,6 +142,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 itemCount: leaderboardData.length,
                 itemBuilder: (context, index) {
                   var user = leaderboardData[index];
+                  int avatarNumber = user['avatarNumber'];
+
                   return Card(
                     elevation: 2,
                     margin: const EdgeInsets.symmetric(vertical: 8),
@@ -118,12 +152,26 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     ),
                     color: Colors.white,
                     child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.orange.shade600,
-                        child: Text(
-                          "#${index + 1}",
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
+                      leading: FutureBuilder<ImageProvider>(
+                        future: _getUserAvatar(avatarNumber),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const CircleAvatar(
+                              backgroundColor: Colors.grey,
+                              child: Icon(Icons.person, color: Colors.white),
+                            );
+                          } else if (snapshot.hasData) {
+                            return CircleAvatar(
+                              backgroundColor: Colors.transparent,
+                              backgroundImage: snapshot.data!,
+                            );
+                          } else {
+                            return const CircleAvatar(
+                              backgroundColor: Colors.grey,
+                              child: Icon(Icons.person, color: Colors.white),
+                            );
+                          }
+                        },
                       ),
                       title: Text(
                         user['username'],

@@ -1,26 +1,98 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'login_screen.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
+  @override
+  _SettingsScreenState createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool _soundEnabled = true; // Varsayılan olarak açık
 
-  Future<void> _deleteAccount(BuildContext context) async {
+  @override
+  void initState() {
+    super.initState();
+    _loadSoundSetting();
+  }
+
+  /// 🔹 **Firestore'dan Kullanıcının `soundEnabled` Ayarını Yükle**
+  Future<void> _loadSoundSetting() async {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .get();
+
+      if (userDoc.exists && userDoc.data() != null) {
+        setState(() {
+          _soundEnabled = userDoc.get("soundEnabled") ?? true;
+        });
+      }
+    }
+  }
+
+  /// 🔹 **Logout İşlemi**
+  Future<void> _logout() async {
     try {
-      // Kullanıcıyı silme işlemi
-      await _auth.currentUser?.delete();
-
-      // Oturum kapatma
-      await _auth.signOut();
-
-      // Başarıyla çıkış yaptıktan sonra anasayfaya yönlendir
+      await _auth.signOut(); // Firebase Auth ile oturumu kapat
+      // Kullanıcı çıkış yaptıktan sonra giriş ekranına yönlendir
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
     } catch (e) {
-      // Hata mesajı
+      print("Çıkış yapma hatası: $e");
+    }
+  }
+
+  /// 🔹 **Firestore'daki `soundEnabled` Alanını Güncelle**
+  Future<void> _toggleSoundSetting(bool newValue) async {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance.collection("users").doc(user.uid).update({
+        "soundEnabled": newValue,
+      });
+
+      setState(() {
+        _soundEnabled = newValue;
+      });
+    }
+  }
+
+  /// 🔹 **Hesap Silme İşlemi**
+  Future<void> _deleteAccount(BuildContext context) async {
+    try {
+      User? user = _auth.currentUser;
+      if (user != null) {
+        String userId = user.uid;
+
+        // Firestore'dan Kullanıcıyı Sil
+        await FirebaseFirestore.instance.collection("users").doc(userId).delete();
+
+        // Firebase Authentication'dan Kullanıcıyı Sil
+        await user.delete();
+
+        // Oturumu Kapat
+        await _auth.signOut();
+
+        // Giriş ekranına yönlendir
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      }
+    } catch (e) {
+      if (e is FirebaseAuthException && e.code == 'requires-recent-login') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Hesap silmek için tekrar giriş yapmalısınız.')),
+        );
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Hata: ${e.toString()}')),
       );
@@ -33,7 +105,7 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Ayarlar'),
         backgroundColor: Colors.orangeAccent,
-        centerTitle: true,  // Başlık ortalanmış
+        centerTitle: true,
       ),
       body: Center(
         child: Padding(
@@ -41,7 +113,6 @@ class SettingsScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Başlık
               const Text(
                 'Hesap Ayarları',
                 style: TextStyle(
@@ -52,7 +123,23 @@ class SettingsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 40),
 
-              // Hesap silme butonu
+              // 🔊 **Ses Aç/Kapat Ayarı**
+              SwitchListTile(
+                title: const Text(
+                  "Ses Efektleri",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                value: _soundEnabled,
+                activeColor: Colors.green,
+                inactiveThumbColor: Colors.red,
+                onChanged: (bool value) {
+                  _toggleSoundSetting(value);
+                },
+              ),
+
+              const SizedBox(height: 40),
+
+              // 🚨 **Hesap Silme Butonu**
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.redAccent,
@@ -71,8 +158,27 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
               ),
-
               const SizedBox(height: 20),
+
+              // 🛑 **Çıkış Yap Butonu**
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orangeAccent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                ),
+                onPressed: _logout,
+                child: const Text(
+                  "Çıkış Yap",
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
