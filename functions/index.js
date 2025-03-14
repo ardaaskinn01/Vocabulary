@@ -4,7 +4,10 @@ const axios = require("axios");
 
 admin.initializeApp();
 
-// 📌 **Satın alma doğrulama fonksiyonu**
+// Firebase gizli değişkenleri al
+const googleApiKey = functions.config().google.api_key;
+const appleSharedSecret = functions.config().apple.shared_secret;
+
 exports.verifyPurchase = functions.https.onCall(async (data, context) => {
   const {userId, purchaseToken, platform} = data;
 
@@ -16,28 +19,22 @@ exports.verifyPurchase = functions.https.onCall(async (data, context) => {
     let isValidPurchase = false;
 
     if (platform === "android") {
-      // 📌 **Google Play satın alma doğrulama URL'si**
       const googleApiUrl = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.aasoft.ingilizce/purchases/subscriptions/premiumaccess1/tokens/${purchaseToken}`;
 
-      // 📌 Google API Key'i burada kullanmalısın
-      const googleApiKey = "AIzaSyBSxaYGFhx2f9FX3htIcMyQlP_2oxBmzyo";
-
       const googleResponse = await axios.get(`${googleApiUrl}?key=${googleApiKey}`);
-      isValidPurchase = googleResponse.data.purchaseState === 0; // 0 = Aktif abonelik
+      isValidPurchase = googleResponse.data.purchaseState === 0;
     } else if (platform === "ios") {
-      // 📌 **App Store satın alma doğrulama URL'si**
       const appleApiUrl = "https://buy.itunes.apple.com/verifyReceipt";
 
       const appleResponse = await axios.post(appleApiUrl, {
         "receipt-data": purchaseToken,
-        "password": "6f89c9b9893b4689a79e4d35b4169ad6",
+        "password": appleSharedSecret,
       });
 
-      isValidPurchase = appleResponse.data.status === 0; // 0 = Geçerli işlem
+      isValidPurchase = appleResponse.data.status === 0;
     }
 
     if (isValidPurchase) {
-      // 📌 Kullanıcıyı Premium olarak işaretle
       await admin.firestore().collection("users").doc(userId).update({isPremium: true});
       return {success: true, message: "Premium doğrulandı!"};
     } else {
