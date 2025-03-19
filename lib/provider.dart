@@ -12,7 +12,7 @@ class PremiumProvider with ChangeNotifier {
   // Premium durumunu güncelle
   void setPremium(bool value) {
     _isPremium = value;
-    notifyListeners(); // Durum değiştiğinde dinleyicilere haber ver
+    notifyListeners();
   }
 
   // Firestore'dan premium durumunu çek ve Provider'ı güncelle

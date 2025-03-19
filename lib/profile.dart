@@ -1,6 +1,8 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:ingilizce/premium.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
@@ -17,6 +19,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _nameController = TextEditingController();
   List<String> _avatarPaths = [];
   bool _isLoading = true;
+  bool _isPremium = false;
 
   @override
   void initState() {
@@ -37,12 +40,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (userDoc.exists) {
           setState(() {
             _userName = userDoc["name"] ?? "Kullanıcı Adı";
+            _isPremium = userDoc["isPremium"] ?? false;
           });
 
           int avatarNumber = userDoc["avatarNumber"] ?? 0;
           _avatarPath = await _getAvatarFilePath(avatarNumber);
           setState(() {});
         }
+
+
       } catch (e) {
         print("❌ Kullanıcı bilgilerini yüklerken hata: $e");
       }
@@ -232,6 +238,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: _updateName,
               child: const Text(
                 "Güncelle",
+                style: TextStyle(color: Colors.black),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _isPremium
+                ? Container()
+                : ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => PremiumPurchaseScreen()),
+                );
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent),
+              child: const Text(
+                "Premium Satın Al",
                 style: TextStyle(color: Colors.black),
               ),
             ),

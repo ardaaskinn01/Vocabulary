@@ -1,18 +1,22 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const axios = require("axios");
+const express = require("express");
+require("dotenv").config();
 
 admin.initializeApp();
 
-// Firebase gizli değişkenleri al
-const googleApiKey = functions.config().google.api_key;
-const appleSharedSecret = functions.config().apple.shared_secret;
+const googleApiKey = process.env.GOOGLE_API_KEY;
+const appleSharedSecret = process.env.APPLE_SHARED_SECRET;
 
-exports.verifyPurchase = functions.https.onCall(async (data, context) => {
-  const {userId, purchaseToken, platform} = data;
+const app = express();
+app.use(express.json());
+
+app.post("/verifyPurchase", async (req, res) => {
+  const {userId, purchaseToken, platform} = req.body;
 
   if (!userId || !purchaseToken || !platform) {
-    throw new functions.https.HttpsError("invalid-argument", "Eksik parametreler.");
+    return res.status(400).json({success: false, message: "Eksik parametreler."});
   }
 
   try {
@@ -36,12 +40,14 @@ exports.verifyPurchase = functions.https.onCall(async (data, context) => {
 
     if (isValidPurchase) {
       await admin.firestore().collection("users").doc(userId).update({isPremium: true});
-      return {success: true, message: "Premium doğrulandı!"};
+      return res.json({success: true, message: "Premium doğrulandı!"});
     } else {
-      throw new functions.https.HttpsError("permission-denied", "Satın alma geçersiz.");
+      return res.status(403).json({success: false, message: "Satın alma geçersiz."});
     }
   } catch (error) {
     console.error("Doğrulama hatası:", error);
-    throw new functions.https.HttpsError("internal", "Satın alma doğrulanamadı.");
+    return res.status(500).json({success: false, message: "Satın alma doğrulanamadı."});
   }
 });
+
+exports.verifyPurchase = functions.https.onRequest(app);

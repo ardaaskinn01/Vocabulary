@@ -58,6 +58,8 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
+    final premiumProvider = Provider.of<PremiumProvider>(context, listen: false);
+    premiumProvider.fetchPremiumStatus();
     _tabController = TabController(length: 3, vsync: this);
     Future.microtask(() async {
       await _getUserId();  // Önce userId atanmalı
