@@ -12,11 +12,32 @@ const appleSharedSecret = process.env.APPLE_SHARED_SECRET;
 const app = express();
 app.use(express.json());
 
+async function verifyAppleReceipt(receiptData) {
+  const productionUrl = "https://buy.itunes.apple.com/verifyReceipt";
+  const sandboxUrl = "https://sandbox.itunes.apple.com/verifyReceipt";
+
+  // Önce production ortamına isteği gönder
+  let response = await axios.post(productionUrl, {
+    "receipt-data": receiptData,
+    "password": appleSharedSecret,
+  });
+
+  // Eğer 21007 hatası dönerse sandbox ortamına yönlendir
+  if (response.data.status === 21007) {
+    response = await axios.post(sandboxUrl, {
+      "receipt-data": receiptData,
+      "password": appleSharedSecret,
+    });
+  }
+
+  return response.data.status === 0;
+}
+
 app.post("/verifyPurchase", async (req, res) => {
-  const {userId, purchaseToken, platform} = req.body;
+  const { userId, purchaseToken, platform } = req.body;
 
   if (!userId || !purchaseToken || !platform) {
-    return res.status(400).json({success: false, message: "Eksik parametreler."});
+    return res.status(400).json({ success: false, message: "Eksik parametreler." });
   }
 
   try {
@@ -28,25 +49,18 @@ app.post("/verifyPurchase", async (req, res) => {
       const googleResponse = await axios.get(`${googleApiUrl}?key=${googleApiKey}`);
       isValidPurchase = googleResponse.data.purchaseState === 0;
     } else if (platform === "ios") {
-      const appleApiUrl = "https://buy.itunes.apple.com/verifyReceipt";
-
-      const appleResponse = await axios.post(appleApiUrl, {
-        "receipt-data": purchaseToken,
-        "password": appleSharedSecret,
-      });
-
-      isValidPurchase = appleResponse.data.status === 0;
+      isValidPurchase = await verifyAppleReceipt(purchaseToken);
     }
 
     if (isValidPurchase) {
-      await admin.firestore().collection("users").doc(userId).update({isPremium: true});
-      return res.json({success: true, message: "Premium doğrulandı!"});
+      await admin.firestore().collection("users").doc(userId).update({ isPremium: true });
+      return res.json({ success: true, message: "Premium doğrulandı!" });
     } else {
-      return res.status(403).json({success: false, message: "Satın alma geçersiz."});
+      return res.status(403).json({ success: false, message: "Satın alma geçersiz." });
     }
   } catch (error) {
-    console.error("Doğrulama hatası:", error);
-    return res.status(500).json({success: false, message: "Satın alma doğrulanamadı."});
+    console.error("Doğrulama hatası:", error.response?.data || error.message);
+    return res.status(500).json({ success: false, message: "Satın alma doğrulanamadı." });
   }
 });
 
