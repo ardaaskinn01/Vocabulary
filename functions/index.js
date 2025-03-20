@@ -4,6 +4,7 @@ const axios = require("axios");
 const express = require("express");
 require("dotenv").config();
 
+
 admin.initializeApp();
 
 const googleApiKey = process.env.GOOGLE_API_KEY;
@@ -34,10 +35,10 @@ async function verifyAppleReceipt(receiptData) {
 }
 
 app.post("/verifyPurchase", async (req, res) => {
-  const { userId, purchaseToken, platform } = req.body;
+  const {userId, purchaseToken, platform} = req.body;
 
   if (!userId || !purchaseToken || !platform) {
-    return res.status(400).json({ success: false, message: "Eksik parametreler." });
+    return res.status(400).json({success: false, message: "Eksik parametreler."});
   }
 
   try {
@@ -53,14 +54,13 @@ app.post("/verifyPurchase", async (req, res) => {
     }
 
     if (isValidPurchase) {
-      await admin.firestore().collection("users").doc(userId).update({ isPremium: true });
-      return res.json({ success: true, message: "Premium doğrulandı!" });
+      await admin.firestore().collection("users").doc(userId).update({isPremium: true});
+      return res.json({success: true, message: "Premium doğrulandı!"});
     } else {
-      return res.status(403).json({ success: false, message: "Satın alma geçersiz." });
+      return res.status(403).json({success: false, message: "Satın alma geçersiz."});
     }
   } catch (error) {
-    console.error("Doğrulama hatası:", error.response?.data || error.message);
-    return res.status(500).json({ success: false, message: "Satın alma doğrulanamadı." });
+    return res.status(500).json({success: false, message: "Satın alma doğrulanamadı."});
   }
 });
 
