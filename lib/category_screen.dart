@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:ingilizce/parentalgate.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -406,25 +407,33 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
   void _navigateToHome() {
     if (_isAdLoaded && _interstitialAd != null) {
-      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
-        onAdDismissedFullScreenContent: (InterstitialAd ad) {
-          ad.dispose(); // Reklam kapatıldığında temizle
-          // _loadInterstitialAd(); // Yeni reklam yükle
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => MainPage()),
-          );
-        },
-        onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
-          ad.dispose();
-          // _loadInterstitialAd();
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => MainPage()),
-          );
-        },
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ParentalGate(
+            onSuccess: () {
+              // Parental Gate başarılı olduktan sonra reklamı göster
+              _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+                onAdDismissedFullScreenContent: (InterstitialAd ad) {
+                  ad.dispose();
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => MainPage()),
+                  );
+                },
+                onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
+                  ad.dispose();
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => MainPage()),
+                  );
+                },
+              );
+              _interstitialAd!.show(); // Reklamı göster
+            },
+          ),
+        ),
       );
-      _interstitialAd!.show(); // Reklamı göster
     } else {
       Navigator.pushReplacement(
         context,
@@ -432,6 +441,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
       );
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -634,8 +645,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
       ),
     );
   }
-
-
 
   List<Widget> buildAnswerAreas(
       BuildContext context, int index, double fixedWidth, double fixedHeight) {
