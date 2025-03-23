@@ -60,25 +60,6 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
     }
   }
 
-  // 📌 **Satın alma işlemlerini dinle ve doğrula**
-  void _listenToPurchases() {
-    _inAppPurchase.purchaseStream.listen((List<PurchaseDetails> purchases) async {
-      for (var purchase in purchases) {
-        if (purchase.status == PurchaseStatus.purchased) {
-          await _verifyPurchase(purchase);
-          Provider.of<PremiumProvider>(context, listen: false).setPremium(true);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("✅ Premium hesaba yükseltildi!")),
-          );
-        } else if (purchase.status == PurchaseStatus.error) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("❌ Satın alma başarısız! Lütfen tekrar deneyin.")),
-          );
-        }
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     if (!isLoading && _products.isNotEmpty) {
@@ -238,6 +219,25 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
     );
   }
 
+  // 📌 **Satın alma işlemlerini dinle ve doğrula**
+  void _listenToPurchases() {
+    _inAppPurchase.purchaseStream.listen((List<PurchaseDetails> purchases) async {
+      for (var purchase in purchases) {
+        if (purchase.status == PurchaseStatus.purchased) {
+          await _verifyPurchase(purchase);
+          Provider.of<PremiumProvider>(context, listen: false).setPremium(true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("✅ Premium hesaba yükseltildi!")),
+          );
+        } else if (purchase.status == PurchaseStatus.error) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("❌ Satın alma başarısız! Lütfen tekrar deneyin.")),
+          );
+        }
+      }
+    });
+  }
+
 
   // 📌 **Abonelik satın alma işlemini başlat**
   Future<void> _purchasePremium(PremiumProvider provider) async {
@@ -270,7 +270,9 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
         },
         body: json.encode({
           "userId": userId,
-          "purchaseToken": purchase.verificationData.serverVerificationData,
+          "purchaseToken": Platform.isAndroid
+              ? purchase.verificationData.serverVerificationData
+              : purchase.verificationData.localVerificationData,  // ✅ iOS için receipt
           "platform": Platform.isAndroid ? "android" : "ios",
         }),
       );

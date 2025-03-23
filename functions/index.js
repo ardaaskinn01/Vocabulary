@@ -17,51 +17,73 @@ async function verifyAppleReceipt(receiptData) {
   const productionUrl = "https://buy.itunes.apple.com/verifyReceipt";
   const sandboxUrl = "https://sandbox.itunes.apple.com/verifyReceipt";
 
-  // Önce production ortamına isteği gönder
-  let response = await axios.post(productionUrl, {
-    "receipt-data": receiptData,
-    "password": appleSharedSecret,
-  });
-
-  // Eğer 21007 hatası dönerse sandbox ortamına yönlendir
-  if (response.data.status === 21007) {
-    response = await axios.post(sandboxUrl, {
+  try {
+    // Önce production ortamında dene
+    let response = await axios.post(productionUrl, {
       "receipt-data": receiptData,
       "password": appleSharedSecret,
+      "exclude-old-transactions": true
     });
-  }
 
-  return response.data.status === 0;
+    // Eğer sandbox hatası dönerse sandbox ortamında dene
+    if (response.data.status === 21007) {
+      response = await axios.post(sandboxUrl, {
+        "receipt-data": receiptData,
+        "password": appleSharedSecret,
+        "exclude-old-transactions": true
+      });
+    }
+
+    // Log ekleyelim
+    console.log("Apple receipt verification response:", response.data);
+
+    // Sonucu döndür
+    if (response.data.status === 0) {
+      return { valid: true, data: response.data };
+    } else {
+      return { valid: false, data: response.data };
+    }
+
+  } catch (error) {
+    console.error("Apple receipt verification error:", error);
+    return { valid: false, error: error.message };
+  }
 }
 
 app.post("/verifyPurchase", async (req, res) => {
-  const {userId, purchaseToken, platform} = req.body;
+  const { userId, purchaseToken, platform } = req.body;
 
   if (!userId || !purchaseToken || !platform) {
-    return res.status(400).json({success: false, message: "Eksik parametreler."});
+    return res.status(400).json({ success: false, message: "Eksik parametreler." });
   }
 
   try {
     let isValidPurchase = false;
+    let responseData = null;
 
     if (platform === "android") {
       const googleApiUrl = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.aasoft.ingilizce/purchases/subscriptions/premiumaccess1/tokens/${purchaseToken}`;
 
       const googleResponse = await axios.get(`${googleApiUrl}?key=${googleApiKey}`);
       isValidPurchase = googleResponse.data.purchaseState === 0;
+      responseData = googleResponse.data;
     } else if (platform === "ios") {
-      isValidPurchase = await verifyAppleReceipt(purchaseToken);
+      const result = await verifyAppleReceipt(purchaseToken);
+      isValidPurchase = result.valid;
+      responseData = result.data || result.error;
     }
 
     if (isValidPurchase) {
-      await admin.firestore().collection("users").doc(userId).update({isPremium: true});
-      return res.json({success: true, message: "Premium doğrulandı!"});
+      await admin.firestore().collection("users").doc(userId).update({ isPremium: true });
+      return res.json({ success: true, message: "Premium doğrulandı!", data: responseData });
     } else {
-      return res.status(403).json({success: false, message: "Satın alma geçersiz."});
+      return res.status(403).json({ success: false, message: "Satın alma geçersiz.", data: responseData });
     }
   } catch (error) {
-    return res.status(500).json({success: false, message: "Satın alma doğrulanamadı."});
+    console.error("Purchase verification error:", error);
+    return res.status(500).json({ success: false, message: "Satın alma doğrulanamadı.", error: error.message });
   }
 });
+
 
 exports.verifyPurchase = functions.https.onRequest(app);
