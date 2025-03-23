@@ -22,7 +22,7 @@ async function verifyAppleReceipt(receiptData) {
     let response = await axios.post(productionUrl, {
       "receipt-data": receiptData,
       "password": appleSharedSecret,
-      "exclude-old-transactions": true
+      "exclude-old-transactions": true,
     });
 
     // Eğer sandbox hatası dönerse sandbox ortamında dene
@@ -30,7 +30,7 @@ async function verifyAppleReceipt(receiptData) {
       response = await axios.post(sandboxUrl, {
         "receipt-data": receiptData,
         "password": appleSharedSecret,
-        "exclude-old-transactions": true
+        "exclude-old-transactions": true,
       });
     }
 
@@ -39,22 +39,21 @@ async function verifyAppleReceipt(receiptData) {
 
     // Sonucu döndür
     if (response.data.status === 0) {
-      return { valid: true, data: response.data };
+      return {valid: true, data: response.data};
     } else {
-      return { valid: false, data: response.data };
+      return {valid: false, data: response.data};
     }
-
   } catch (error) {
     console.error("Apple receipt verification error:", error);
-    return { valid: false, error: error.message };
+    return {valid: false, error: error.message};
   }
 }
 
 app.post("/verifyPurchase", async (req, res) => {
-  const { userId, purchaseToken, platform } = req.body;
+  const {userId, purchaseToken, platform} = req.body;
 
   if (!userId || !purchaseToken || !platform) {
-    return res.status(400).json({ success: false, message: "Eksik parametreler." });
+    return res.status(400).json({success: false, message: "Eksik parametreler."});
   }
 
   try {
@@ -74,14 +73,14 @@ app.post("/verifyPurchase", async (req, res) => {
     }
 
     if (isValidPurchase) {
-      await admin.firestore().collection("users").doc(userId).update({ isPremium: true });
-      return res.json({ success: true, message: "Premium doğrulandı!", data: responseData });
+      await admin.firestore().collection("users").doc(userId).update({isPremium: true});
+      return res.json({success: true, message: "Premium doğrulandı!", data: responseData});
     } else {
-      return res.status(403).json({ success: false, message: "Satın alma geçersiz.", data: responseData });
+      return res.status(403).json({success: false, message: "Satın alma geçersiz.", data: responseData});
     }
   } catch (error) {
     console.error("Purchase verification error:", error);
-    return res.status(500).json({ success: false, message: "Satın alma doğrulanamadı.", error: error.message });
+    return res.status(500).json({success: false, message: "Satın alma doğrulanamadı.", error: error.message});
   }
 });
 
