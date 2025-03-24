@@ -200,12 +200,23 @@ class _AlphabetScreenState extends State<AlphabetScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => Scaffold(
-          appBar: AppBar(title: const Text("YouTube Video")),
+          appBar: AppBar(title: const Text("Video")),
           body: WebViewWidget(
             controller: WebViewController()
               ..setJavaScriptMode(JavaScriptMode.unrestricted)
+              ..setNavigationDelegate(
+                NavigationDelegate(
+                  onNavigationRequest: (NavigationRequest request) {
+                    if (request.url.contains("youtube.com") && !request.url.contains("embed")) {
+                      // YouTube sitesine çıkışı engelle
+                      return NavigationDecision.prevent;
+                    }
+                    return NavigationDecision.navigate;
+                  },
+                ),
+              )
               ..loadRequest(Uri.parse(
-                  "https://www.youtube.com/embed/${YoutubePlayer.convertUrlToId(youtubeUrl)}?autoplay=1&modestbranding=1&rel=0")),
+                  "https://www.youtube.com/embed/${YoutubePlayer.convertUrlToId(youtubeUrl)}?autoplay=1&modestbranding=1&rel=0&controls=1&fs=0&disablekb=1&iv_load_policy=3")),
           ),
         ),
       ),
