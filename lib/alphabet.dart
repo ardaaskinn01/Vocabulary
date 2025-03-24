@@ -156,7 +156,7 @@ class _AlphabetScreenState extends State<AlphabetScreen> {
             ),
           ),
           content: const Text(
-            "Bu içeriğe erişmek için 13 yaşından büyük olmanız veya ebeveyn izni almanız gerekmektedir. Devam etmek istiyor musunuz?",
+            "Bu içeriğe erişmek için 17 yaşından büyük olmanız veya ebeveyn izni almanız gerekmektedir. Devam etmek istiyor musunuz?",
             style: TextStyle(
               fontSize: 16,
               height: 1.5, // Satırlar arası mesafe

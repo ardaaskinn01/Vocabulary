@@ -349,7 +349,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
             ),
           ),
           content: const Text(
-            "Bu içeriğe erişmek için 13 yaşından büyük olmanız veya ebeveyn izni almanız gerekmektedir. Devam etmek istiyor musunuz?",
+            "Bu içeriğe erişmek için 17 yaşından büyük olmanız veya ebeveyn izni almanız gerekmektedir. Devam etmek istiyor musunuz?",
             style: TextStyle(
               fontSize: 16,
               height: 1.5, // Satırlar arası mesafe
@@ -411,25 +411,33 @@ class _CategoryScreenState extends State<CategoryScreen> {
         context,
         MaterialPageRoute(
           builder: (context) => ParentalGate(
-            onSuccess: () {
-              // Parental Gate başarılı olduktan sonra reklamı göster
-              _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
-                onAdDismissedFullScreenContent: (InterstitialAd ad) {
-                  ad.dispose();
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => MainPage()),
-                  );
-                },
-                onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
-                  ad.dispose();
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => MainPage()),
-                  );
-                },
-              );
-              _interstitialAd!.show(); // Reklamı göster
+            onSuccess: (bool success) {
+              if (success) {
+                // Doğru cevap - reklam göster ve main'e yönlendir
+                _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+                  onAdDismissedFullScreenContent: (InterstitialAd ad) {
+                    ad.dispose();
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => MainPage()),
+                    );
+                  },
+                  onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
+                    ad.dispose();
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => MainPage()),
+                    );
+                  },
+                );
+                _interstitialAd!.show();
+              } else {
+                // Yanlış cevap - direkt main page
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => MainPage()),
+                );
+              }
             },
           ),
         ),

@@ -2,7 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 class ParentalGate extends StatefulWidget {
-  final Function onSuccess;
+  final Function(bool success) onSuccess;
 
   ParentalGate({required this.onSuccess});
 
@@ -17,12 +17,10 @@ class _ParentalGateState extends State<ParentalGate> {
 
   final Random _random = Random();
 
-  // 20 tane farklı matematik sorusu oluşturacak fonksiyon
   void generateRandomQuestion() {
-    // Rastgele 2 sayı seç
-    int num1 = _random.nextInt(10) + 1; // 1 ile 10 arasında
-    int num2 = _random.nextInt(10) + 1; // 1 ile 10 arasında
-    int operation = _random.nextInt(4); // 4 farklı işlem
+    int num1 = _random.nextInt(10) + 1;
+    int num2 = _random.nextInt(10) + 1;
+    int operation = _random.nextInt(3); // Bölmeyi çıkardım, çünkü tam sayı zor olur.
 
     switch (operation) {
       case 0:
@@ -37,10 +35,6 @@ class _ParentalGateState extends State<ParentalGate> {
         question = '$num1 * $num2';
         correctAnswer = num1 * num2;
         break;
-      case 3:
-        question = '$num1 / $num2';
-        correctAnswer = (num1 / num2).toInt(); // Tam sayı olmasını sağla
-        break;
       default:
         question = '$num1 + $num2';
         correctAnswer = num1 + num2;
@@ -50,7 +44,7 @@ class _ParentalGateState extends State<ParentalGate> {
   @override
   void initState() {
     super.initState();
-    generateRandomQuestion(); // İlk soruyu oluştur
+    generateRandomQuestion();
   }
 
   @override
@@ -81,29 +75,9 @@ class _ParentalGateState extends State<ParentalGate> {
             ElevatedButton(
               onPressed: () {
                 if (userAnswer == correctAnswer) {
-                  widget.onSuccess(); // Başarılı ise, onSuccess fonksiyonunu çağır
+                  widget.onSuccess(true);
                 } else {
-                  // Yanlış cevap verildiğinde
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        title: Text('Incorrect Answer'),
-                        content: Text('Try again!'),
-                        actions: <Widget>[
-                          TextButton(
-                            child: Text('OK'),
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                              setState(() {
-                                generateRandomQuestion(); // Yeni soru oluştur
-                              });
-                            },
-                          ),
-                        ],
-                      );
-                    },
-                  );
+                  widget.onSuccess(false);
                 }
               },
               child: Text('Submit Answer'),
