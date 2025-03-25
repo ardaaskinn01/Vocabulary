@@ -359,10 +359,14 @@ class _CategoryScreenState extends State<CategoryScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Kullanıcı iptal ederse diyalog kapanır
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => MainPage()),
+                );
               },
               style: TextButton.styleFrom(
-                foregroundColor: Colors.redAccent, textStyle: TextStyle(
+                foregroundColor: Colors.redAccent,
+                textStyle: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
