@@ -166,13 +166,17 @@ class _AlphabetScreenState extends State<AlphabetScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Kullanıcı iptal ederse diyalog kapanır
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => MainPage()),
+                );
               },
               style: TextButton.styleFrom(
-                foregroundColor: Colors.redAccent, textStyle: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+                foregroundColor: Colors.redAccent,
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               child: const Text("Hayır"),
             ),
