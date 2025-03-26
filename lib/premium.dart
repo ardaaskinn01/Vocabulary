@@ -46,18 +46,37 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
     }
   }
 
-  // 📌 Google Play ve App Store'daki ürünleri yükleyelim
   Future<void> _loadProducts() async {
-    const Set<String> _productIds = {'premiumaccess1'}; // 📌 Abonelik ürün kimliği
-    final ProductDetailsResponse response = await _inAppPurchase.queryProductDetails(_productIds);
+    try {
+      const Set<String> _productIds = {'premiumaccess1'};
 
-    if (response.notFoundIDs.isNotEmpty) {
-      print("❌ Ürün bulunamadı: ${response.notFoundIDs}");
-    } else {
-      setState(() {
-        _products = response.productDetails;
-      });
+      final ProductDetailsResponse response =
+          await _inAppPurchase.queryProductDetails(_productIds);
+
+      if (response.notFoundIDs.isNotEmpty) {
+        _showMessage("❌ Ürün bulunamadı: ${response.notFoundIDs}");
+      }
+
+      if (response.productDetails.isEmpty) {
+        _showMessage("⚠️ Ürün listesi boş geldi!");
+      } else {
+        setState(() {
+          _products = response.productDetails;
+        });
+        _showMessage("✅ Ürünler başarıyla yüklendi!");
+      }
+    } catch (e) {
+      _showMessage("🔥 Ürünleri yüklerken hata oluştu: $e");
     }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: Duration(seconds: 6),
+      ),
+    );
   }
 
   @override
@@ -73,16 +92,17 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : _products.isEmpty
-          ? const Center(child: Text("Satın alma seçenekleri yüklenemedi."))
-          : const Center(
-        child: Text("Premium bilgileri yüklendi."),
-      ),
+              ? const Center(child: Text("Satın alma seçenekleri yüklenemedi."))
+              : const Center(
+                  child: Text("Premium bilgileri yüklendi."),
+                ),
     );
   }
 
   // 📌 **Premium Satın Alma Pop-up'ını Açma**
   void _showPurchaseDialog(BuildContext context) {
-    final premiumProvider = Provider.of<PremiumProvider>(context, listen: false);
+    final premiumProvider =
+        Provider.of<PremiumProvider>(context, listen: false);
 
     showModalBottomSheet(
       context: context,
@@ -118,7 +138,8 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
                           SizedBox(height: 8),
                           Text(
                             "🚀 Premium Erişim",
-                            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                fontSize: 28, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -126,21 +147,25 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
                     const SizedBox(height: 24),
                     const Text(
                       "✨ Premium ile şunlara sahip olursunuz:",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 12),
                     Column(
                       children: const [
                         ListTile(
-                          leading: Icon(Icons.lock_open_rounded, color: Colors.orange),
-                          title: Text("Orta ve İleri Seviye kategorilere tam erişim"),
+                          leading: Icon(Icons.lock_open_rounded,
+                              color: Colors.orange),
+                          title: Text(
+                              "Orta ve İleri Seviye kategorilere tam erişim"),
                         ),
                         ListTile(
                           leading: Icon(Icons.block, color: Colors.orange),
                           title: Text("Reklamsız kullanım"),
                         ),
                         ListTile(
-                          leading: Icon(Icons.star_border, color: Colors.orange),
+                          leading:
+                              Icon(Icons.star_border, color: Colors.orange),
                           title: Text("Özel premium içerikler"),
                         ),
                       ],
@@ -154,7 +179,8 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
                       ),
                       child: const Text(
                         "📅 Aylık sadece 29.99₺ - İptal edilmediği sürece her ay otomatik yenilenir.",
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -184,29 +210,31 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
                       child: _isPurchasing
                           ? const CircularProgressIndicator()
                           : ElevatedButton(
-                        onPressed: () async {
-                          setState(() {
-                            _isPurchasing = true;
-                          });
-                          await _purchasePremium(premiumProvider);
-                          setState(() {
-                            _isPurchasing = false;
-                          });
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 16, horizontal: 32),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16)),
-                          elevation: 6,
-                        ),
-                        child: const Text(
-                          "Aylık 29.99₺ ile Premium Ol",
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                      ),
+                              onPressed: () async {
+                                setState(() {
+                                  _isPurchasing = true;
+                                });
+                                await _purchasePremium(premiumProvider);
+                                setState(() {
+                                  _isPurchasing = false;
+                                });
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 16, horizontal: 32),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16)),
+                                elevation: 6,
+                              ),
+                              child: const Text(
+                                "Aylık 29.99₺ ile Premium Ol",
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white),
+                              ),
+                            ),
                     ),
                     const SizedBox(height: 30),
                   ],
@@ -221,7 +249,8 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
 
   // 📌 **Satın alma işlemlerini dinle ve doğrula**
   void _listenToPurchases() {
-    _inAppPurchase.purchaseStream.listen((List<PurchaseDetails> purchases) async {
+    _inAppPurchase.purchaseStream
+        .listen((List<PurchaseDetails> purchases) async {
       for (var purchase in purchases) {
         if (purchase.status == PurchaseStatus.purchased) {
           await _verifyPurchase(purchase);
@@ -231,25 +260,29 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
           );
         } else if (purchase.status == PurchaseStatus.error) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("❌ Satın alma başarısız! Lütfen tekrar deneyin.")),
+            const SnackBar(
+                content:
+                    Text("❌ Satın alma başarısız! Lütfen tekrar deneyin.")),
           );
         }
       }
     });
   }
 
-
   // 📌 **Abonelik satın alma işlemini başlat**
   Future<void> _purchasePremium(PremiumProvider provider) async {
     if (_products.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Ürünler yüklenemedi, lütfen tekrar deneyin.")),
+        const SnackBar(
+            content: Text("Ürünler yüklenemedi, lütfen tekrar deneyin.")),
       );
       return;
     }
 
     final ProductDetails product = _products.firstWhere(
-          (product) => product.id == 'premiumaccess1', // Google Play ürün kimliğine göre seçim yapalım
+      (product) =>
+          product.id ==
+          'premiumaccess1', // Google Play ürün kimliğine göre seçim yapalım
       orElse: () => _products.first,
     );
 
@@ -257,14 +290,14 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
     _inAppPurchase.buyConsumable(purchaseParam: purchaseParam);
   }
 
-
   // 📌 **Ödemeyi doğrula ve Firestore'a kaydet**
   Future<void> _verifyPurchase(PurchaseDetails purchase) async {
     if (userId == null) return;
 
     try {
       final response = await http.post(
-        Uri.parse('https://us-central1-ingilizce-e826d.cloudfunctions.net/verifyPurchase'),// Sunucu URL'nizi buraya ekleyin
+        Uri.parse(
+            'https://us-central1-ingilizce-e826d.cloudfunctions.net/verifyPurchase'), // Sunucu URL'nizi buraya ekleyin
         headers: {
           'Content-Type': 'application/json',
         },
@@ -272,7 +305,8 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
           "userId": userId,
           "purchaseToken": Platform.isAndroid
               ? purchase.verificationData.serverVerificationData
-              : purchase.verificationData.localVerificationData,  // ✅ iOS için receipt
+              : purchase
+                  .verificationData.localVerificationData, // ✅ iOS için receipt
           "platform": Platform.isAndroid ? "android" : "ios",
         }),
       );
@@ -281,7 +315,10 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
         final responseData = json.decode(response.body);
         if (responseData['success']) {
           print("✅ Satın alma doğrulandı!");
-          await _firestore.collection("users").doc(userId).update({"isPremium": true});
+          await _firestore
+              .collection("users")
+              .doc(userId)
+              .update({"isPremium": true});
         } else {
           print("❌ Satın alma doğrulanamadı.");
         }

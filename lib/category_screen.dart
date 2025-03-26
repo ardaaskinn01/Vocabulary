@@ -420,48 +420,71 @@ class _CategoryScreenState extends State<CategoryScreen> {
     );
   }
 
-  void _navigateToHome() {
-    if (_isAdLoaded && _interstitialAd != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ParentalGate(
-            onSuccess: (bool success) {
-              if (success) {
-                // Doğru cevap - reklam göster ve main'e yönlendir
-                _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
-                  onAdDismissedFullScreenContent: (InterstitialAd ad) {
-                    ad.dispose();
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => MainPage()),
-                    );
-                  },
-                  onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
-                    ad.dispose();
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => MainPage()),
-                    );
-                  },
-                );
-                _interstitialAd!.show();
-              } else {
-                // Yanlış cevap - direkt main page
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => MainPage()),
-                );
-              }
-            },
-          ),
-        ),
-      );
-    } else {
+  void _navigateToHome() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    bool isPremium = false;
+
+    if (user != null) {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (userDoc.exists) {
+        isPremium = userDoc.get('isPremium') ?? false;
+      }
+    }
+
+    if (isPremium) {
+      // Premium kullanıcı, direkt olarak main sayfaya gider (reklam gösterilmez)
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => MainPage()),
       );
+    } else {
+      // Premium değilse reklam kontrolü
+      if (_isAdLoaded && _interstitialAd != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ParentalGate(
+              onSuccess: (bool success) {
+                if (success) {
+                  // Doğru cevap - reklam göster ve main'e yönlendir
+                  _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+                    onAdDismissedFullScreenContent: (InterstitialAd ad) {
+                      ad.dispose();
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => MainPage()),
+                      );
+                    },
+                    onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
+                      ad.dispose();
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => MainPage()),
+                      );
+                    },
+                  );
+                  _interstitialAd!.show();
+                } else {
+                  // Yanlış cevap - direkt main page
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => MainPage()),
+                  );
+                }
+              },
+            ),
+          ),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MainPage()),
+        );
+      }
     }
   }
 
