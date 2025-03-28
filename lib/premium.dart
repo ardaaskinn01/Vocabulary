@@ -48,7 +48,7 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
 
   Future<void> _loadProducts() async {
     try {
-      const Set<String> _productIds = {'premiumaccess3'};
+      const Set<String> _productIds = {'premiumsub'};
 
       final ProductDetailsResponse response =
           await _inAppPurchase.queryProductDetails(_productIds);
