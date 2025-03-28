@@ -282,7 +282,7 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
     final ProductDetails product = _products.firstWhere(
       (product) =>
           product.id ==
-          'premiumaccess1', // Google Play ürün kimliğine göre seçim yapalım
+          'premiumaccess3', // Google Play ürün kimliğine göre seçim yapalım
       orElse: () => _products.first,
     );
 
