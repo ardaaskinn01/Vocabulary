@@ -22,6 +22,7 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
   List<ProductDetails> _products = [];
   String? userId;
   bool isLoading = true;
+  bool _isLoading = false;
   bool _isPurchasing = false;
 
   @override
@@ -222,13 +223,9 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
                                     borderRadius: BorderRadius.circular(16)),
                                 elevation: 6,
                               ),
-                              child: const Text(
-                                "Aylık 29.99₺ ile Premium Ol",
-                                style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white),
-                              ),
+                              child: _isLoading
+                                  ? CircularProgressIndicator(color: Colors.white)
+                                  : Text("Aylık 29.99₺ ile Premium Ol", style: TextStyle(color: Colors.white),),
                             ),
                     ),
                     const SizedBox(height: 30),
@@ -244,24 +241,25 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
 
   // 📌 **Satın alma işlemlerini dinle ve doğrula**
   void _listenToPurchases() {
-    _inAppPurchase.purchaseStream
-        .listen((List<PurchaseDetails> purchases) async {
-      for (var purchase in purchases) {
-        if (purchase.status == PurchaseStatus.purchased) {
-          await _verifyPurchase(purchase);
-          Provider.of<PremiumProvider>(context, listen: false).setPremium(true);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("✅ Premium hesaba yükseltildi!")),
-          );
-        } else if (purchase.status == PurchaseStatus.error) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content:
-                    Text("❌ Satın alma başarısız! Lütfen tekrar deneyin.")),
-          );
+    _inAppPurchase.purchaseStream.listen(
+          (List<PurchaseDetails> purchases) async {
+        try {
+          for (var purchase in purchases) {
+            print("🛒 Satın alma işlemi: ${purchase.status}");
+            if (purchase.status == PurchaseStatus.purchased) {
+              await _verifyPurchase(purchase);
+            } else if (purchase.status == PurchaseStatus.error) {
+              print("❌ Satın alma başarısız: ${purchase.error}");
+            }
+          }
+        } catch (e) {
+          print("🔥 Dinleyici hatası: $e");
         }
-      }
-    });
+      },
+      onError: (error) {
+        print("🔥 purchaseStream hatası: $error");
+      },
+    );
   }
 
   // 📌 **Abonelik satın alma işlemini başlat**
@@ -282,25 +280,33 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
     );
 
     final PurchaseParam purchaseParam = PurchaseParam(productDetails: product);
-    _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
+    bool success = await _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("❌ Satın alma işlemi başlatılamadı!")),
+      );
+    }
   }
 
-  // 📌 **Ödemeyi doğrula ve Firestore'a kaydet**
   Future<void> _verifyPurchase(PurchaseDetails purchase) async {
     if (userId == null) return;
 
     try {
+      // 🔄 Yüklenme durumunu başlat
+      setState(() => _isLoading = true);
+
       final response = await http.post(
         Uri.parse('https://us-central1-ingilizce-e826d.cloudfunctions.net/verifyPurchase'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           "userId": userId,
-          "purchaseToken": Platform.isAndroid
-              ? purchase.verificationData.serverVerificationData
-              : purchase.verificationData.localVerificationData, // ✅ iOS için receipt
+          "purchaseToken": purchase.verificationData.serverVerificationData,
           "platform": Platform.isAndroid ? "android" : "ios",
         }),
       );
+
+      // ⏹️ Yüklenme durumunu kapat
+      setState(() => _isLoading = false);
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
@@ -319,12 +325,15 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
           print("❌ Satın alma doğrulanamadı.");
         }
       } else {
-        print("❌ Sunucu hatası: ${response.statusCode}");
+        throw Exception("❌ Sunucu hatası: ${response.statusCode}");
       }
     } catch (e) {
+      // ⏹️ Hata durumunda yüklenme durumunu kapat
+      setState(() => _isLoading = false);
       print("🔥 Hata: $e");
     }
   }
+
 
   Future<void> _checkSubscriptionStatus() async {
     final userDoc = await _firestore.collection("users").doc(userId).get();

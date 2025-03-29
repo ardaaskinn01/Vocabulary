@@ -70,19 +70,40 @@ app.post("/verifyPurchase", async (req, res) => {
     }
 
     if (isValidPurchase) {
-      await admin.firestore().collection("users").doc(userId).update({
-        isPremium: true,
-        subscriptionEnd: expiresDate, // 📌 Abonelik süresi Firebase'e kaydedildi!
-      });
+      try {
+        await admin.firestore().collection("users").doc(userId).update({
+          isPremium: true,
+          subscriptionEnd: expiresDate,
+        });
+      } catch (error) {
+        console.error("Firestore güncelleme hatası:", error);
+        return res.status(500).json({
+          success: false,
+          message: "Veritabanı güncellenemedi.",
+          error: error.message,
+        });
+      }
 
-      return res.json({success: true, message: "Premium doğrulandı!", expiresDate});
+      return res.json({
+        success: true,
+        message: "Premium doğrulandı!",
+        expiresDate,
+      });
     } else {
-      return res.status(403).json({success: false, message: "Satın alma geçersiz."});
+      return res.status(403).json({
+        success: false,
+        message: "Satın alma geçersiz.",
+      });
     }
   } catch (error) {
     console.error("Purchase verification error:", error);
-    return res.status(500).json({success: false, message: "Satın alma doğrulanamadı.", error: error.message});
+    return res.status(500).json({
+      success: false,
+      message: "Satın alma doğrulanamadı.",
+      error: error.message,
+    });
   }
 });
+
 
 exports.verifyPurchase = functions.https.onRequest(app);

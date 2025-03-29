@@ -335,14 +335,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
             ),
             onPressed: () {
-              showModalBottomSheet(
-                context: context,
-                isDismissible: true,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                ),
-                builder: (context) => PremiumPurchaseScreen(),
-              );
+              _showParentalGate(context);
             },
             child: const Text(
               "Premium Satın Al",
@@ -351,6 +344,94 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
           ),
         ],
       ),
+    );
+  }
+
+  void _showParentalGate(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Kullanıcı pencereyi kapatamaz
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Erişim Doğrulama"),
+          content: Text("18 yaşından büyük müsünüz veya ebeveyn izniniz var mı?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Hayır seçilirse pencere kapanır
+              },
+              child: Text("Hayır"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _showAgeVerificationDialog(context); // Evet seçilirse yaş doğrulama ekranı açılır
+              },
+              child: Text("Evet"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAgeVerificationDialog(BuildContext context) {
+    TextEditingController _ageController = TextEditingController();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Kullanıcı pencereyi kapatamaz
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Yaş Doğrulama"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("Lütfen yaşınızı girin:"),
+              SizedBox(height: 10),
+              TextField(
+                controller: _ageController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: "Yaşınızı girin",
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Pencereyi kapat
+              },
+              child: Text("İptal"),
+            ),
+            TextButton(
+              onPressed: () {
+                int age = int.tryParse(_ageController.text) ?? 0;
+                if (age >= 18) {
+                  Navigator.of(context).pop();
+                  _openPremiumScreen(context); // 18 yaşından büyükse premium ekranı aç
+                } else {
+                  Navigator.of(context).pop(); // 18 yaşından küçükse pencere kapanır
+                }
+              },
+              child: Text("Onayla"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _openPremiumScreen(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isDismissible: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => PremiumPurchaseScreen(),
     );
   }
 
