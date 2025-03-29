@@ -47,12 +47,12 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
 
   // Her kategoriye özel toplam soru sayısı
   final Map<String, int> categoryTotalQuestions = {
-    "family tree": 10, "colors": 11, "numbers": 20, "fruits": 20, "animals": 30, "vegetables": 20, "adjectives": 19, "bodyparts": 22, "clothes": 23, "countries": 13, "verbs": 22, "verbs2": 21, "shapes": 10, "emotions": 9, "jobs": 11, "workplaces": 22, "vehicles": 16, "households": 26, "space": 15, "grammar": 0, "alphabet": 0, "simplepresent": 0, "simplepresent2": 0, "simplepresent3": 0, "simplepresent4": 0
+    "family tree": 10, "colors": 11, "numbers": 20, "fruits": 20, "animals": 30, "vegetables": 20, "adjectives": 19, "bodyparts": 22, "clothes": 23, "countries": 13, "verbs": 22, "verbs2": 21, "shapes": 10, "emotions": 9, "jobs": 11, "workplaces": 22, "vehicles": 16, "households": 26, "space": 15, "grammar": 0, "alphabet": 0, "simplepresent": 0, "simplepresent2": 0, "simplepresent3": 0, "simplepresent4": 0, "prepositions": 10, "numbers2": 21, "directions": 18, "basicmath": 17, "basicmath2": 16, "midverbs": 19, "midverbs2": 20, "midverbs3": 20, "midverbs4": 20, "midverbs5": 19, "midverbs6": 19, "midverbs7": 17, "midverbs8": 17, "midverbs9": 16, "midverbs10": 24, "school": 18, "school2": 15, "football": 20, "football2": 20, "football3": 17
   };
 
   // Kategorilerin kilidinin bir kez açılıp açılmadığını takip eden harita
   final Map<String, bool> categoryUnlockedStatus = {
-    "family tree": false, "colors": false, "numbers": false, "fruits": false, "animals": false, "vegetables": false, "adjectives": false, "bodyparts": false, "clothes": false, "countries": false, "verbs": false, "verbs2": false, "shapes": false, "emotions": false, "jobs": false, "workplaces": false, "vehicles": false, "households": false, "space": false, "alphabet": false, "grammar": false, "simplepresent": false, "simplepresent2": false, "simplepresent3": false, "simplepresent4": false
+    "family tree": false, "colors": false, "numbers": false, "fruits": false, "animals": false, "vegetables": false, "adjectives": false, "bodyparts": false, "clothes": false, "countries": false, "verbs": false, "verbs2": false, "shapes": false, "emotions": false, "jobs": false, "workplaces": false, "vehicles": false, "households": false, "space": false, "alphabet": false, "grammar": false, "simplepresent": false, "simplepresent2": false, "simplepresent3": false, "simplepresent4": false, "prepositions": false, "numbers2": false, "directions": false, "basicmath": false, "basicmath2": false, "midverbs": false, "midverbs2": false, "midverbs3": false, "midverbs4": false, "midverbs5": false, "midverbs6": false, "midverbs7": false, "midverbs8": false, "midverbs9": false, "midverbs10": false, "school": false, "school2": false, "football": false, "football2": false, "football3": false
   };
 
   @override
@@ -273,9 +273,26 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                     isPremium
                         ? buildCategorySection(
                       [
-                        buildCategoryCard(context, "Intermediate 1", "intermediate1"),
-                        buildCategoryCard(context, "Intermediate 2", "intermediate2"),
-                        // Diğer orta seviye kategoriler
+                        buildCategoryCard(context, "Prepositions", "prepositions"),
+                        buildCategoryCard(context, "Numbers 2", "numbers2"),
+                        buildCategoryCard(context, "Directions", "directions"),
+                        buildCategoryCard(context, "Basic Math", "basicmath"),
+                        buildCategoryCard(context, "Basic Math 2", "basicmath2"),
+                        buildCategoryCard(context, "Mid-Verbs", "midverbs"),
+                        buildCategoryCard(context, "Mid-Verbs 2", "midverbs2"),
+                        buildCategoryCard(context, "Mid-Verbs 3", "midverbs3"),
+                        buildCategoryCard(context, "Mid-Verbs 4", "midverbs4"),
+                        buildCategoryCard(context, "Mid-Verbs 5", "midverbs5"),
+                        buildCategoryCard(context, "Mid-Verbs 6", "midverbs6"),
+                        buildCategoryCard(context, "Mid-Verbs 7", "midverbs7"),
+                        buildCategoryCard(context, "Mid-Verbs 8", "midverbs8"),
+                        buildCategoryCard(context, "Mid-Verbs 9", "midverbs9"),
+                        buildCategoryCard(context, "Mid-Verbs 10", "midverbs10"),
+                        buildCategoryCard(context, "School Items", "school"),
+                        buildCategoryCard(context, "School Items 2", "school2"),
+                        buildCategoryCard(context, "Football", "football"),
+                        buildCategoryCard(context, "Football 2", "football2"),
+                        buildCategoryCard(context, "Football 3", "football3",),
                       ],
                       [],
                     )
@@ -285,9 +302,6 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                     isPremium
                         ? buildCategorySection(
                       [
-                        buildCategoryCard(context, "Advanced 1", "advanced1"),
-                        buildCategoryCard(context, "Advanced 2", "advanced2"),
-                        // Diğer ileri seviye kategoriler
                       ],
                       [],
                     )

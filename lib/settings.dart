@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 
 import 'login_screen.dart';
 
@@ -17,6 +18,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _loadSoundSetting();
+  }
+
+  Future<void> _restorePurchases() async {
+    final InAppPurchase iap = InAppPurchase.instance;
+
+    final bool available = await iap.isAvailable();
+    if (!available) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Mağaza kullanılabilir değil!")),
+      );
+      return;
+    }
+
+    // Apple Store veya Google Play’den geçmiş satın alımları yükler
+    iap.restorePurchases();
+
+    // Satın alım bilgilerini almak için stream dinleyelim
+    iap.purchaseStream.listen((List<PurchaseDetails> purchases) {
+      if (purchases.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Geçmiş satın alımlar bulunamadı.")),
+        );
+        return;
+      }
+
+      for (var purchase in purchases) {
+        if (purchase.status == PurchaseStatus.purchased ||
+            purchase.status == PurchaseStatus.restored) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Satın alımlar geri yüklendi!")),
+          );
+
+          // Firestore verisini güncellemek gerekirse burada yapabilirsiniz.
+          // örn: Firestore'a premium durumu kaydetme
+          // FirebaseFirestore.instance.collection("users").doc(userId).update({"isPremium": true});
+        }
+      }
+    });
   }
 
   /// 🔹 **Firestore'dan Kullanıcının `soundEnabled` Ayarını Yükle**
@@ -121,8 +160,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: Colors.orangeAccent,
                 ),
               ),
-              const SizedBox(height: 40),
-
+              const SizedBox(height: 20),
               // 🔊 **Ses Aç/Kapat Ayarı**
               SwitchListTile(
                 title: const Text(
@@ -138,7 +176,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               const SizedBox(height: 40),
-
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                ),
+                onPressed: _restorePurchases,
+                child: const Text(
+                  "Satın Alımları Geri Yükle",
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
               // 🚨 **Hesap Silme Butonu**
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -159,8 +215,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // 🛑 **Çıkış Yap Butonu**
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orangeAccent,

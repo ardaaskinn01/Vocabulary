@@ -163,11 +163,6 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
                           leading: Icon(Icons.block, color: Colors.orange),
                           title: Text("Reklamsız kullanım"),
                         ),
-                        ListTile(
-                          leading:
-                              Icon(Icons.star_border, color: Colors.orange),
-                          title: Text("Özel premium içerikler"),
-                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -282,12 +277,12 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
     final ProductDetails product = _products.firstWhere(
       (product) =>
           product.id ==
-          'premiumaccess3', // Google Play ürün kimliğine göre seçim yapalım
+          'premiumsub',
       orElse: () => _products.first,
     );
 
     final PurchaseParam purchaseParam = PurchaseParam(productDetails: product);
-    _inAppPurchase.buyConsumable(purchaseParam: purchaseParam);
+    _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
   }
 
   // 📌 **Ödemeyi doğrula ve Firestore'a kaydet**
@@ -296,17 +291,13 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse(
-            'https://us-central1-ingilizce-e826d.cloudfunctions.net/verifyPurchase'), // Sunucu URL'nizi buraya ekleyin
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        Uri.parse('https://us-central1-ingilizce-e826d.cloudfunctions.net/verifyPurchase'),
+        headers: {'Content-Type': 'application/json'},
         body: json.encode({
           "userId": userId,
           "purchaseToken": Platform.isAndroid
               ? purchase.verificationData.serverVerificationData
-              : purchase
-                  .verificationData.localVerificationData, // ✅ iOS için receipt
+              : purchase.verificationData.localVerificationData, // ✅ iOS için receipt
           "platform": Platform.isAndroid ? "android" : "ios",
         }),
       );
@@ -315,10 +306,15 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
         final responseData = json.decode(response.body);
         if (responseData['success']) {
           print("✅ Satın alma doğrulandı!");
-          await _firestore
-              .collection("users")
-              .doc(userId)
-              .update({"isPremium": true});
+
+          // 📌 Firestore'a abonelik bilgilerini kaydet
+          await _firestore.collection("users").doc(userId).update({
+            "isPremium": true,
+            "subscriptionEnd": responseData['expiresDate'], // 📌 Abonelik bitiş tarihi
+          });
+
+          // 📌 Kullanıcının premium olup olmadığını kontrol et
+          _checkSubscriptionStatus();
         } else {
           print("❌ Satın alma doğrulanamadı.");
         }
@@ -327,6 +323,21 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
       }
     } catch (e) {
       print("🔥 Hata: $e");
+    }
+  }
+
+  Future<void> _checkSubscriptionStatus() async {
+    final userDoc = await _firestore.collection("users").doc(userId).get();
+
+    if (userDoc.exists) {
+      final data = userDoc.data();
+      final int? subscriptionEnd = data?['subscriptionEnd'];
+
+      if (subscriptionEnd != null && subscriptionEnd > DateTime.now().millisecondsSinceEpoch) {
+        Provider.of<PremiumProvider>(context, listen: false).setPremium(true);
+      } else {
+        Provider.of<PremiumProvider>(context, listen: false).setPremium(false);
+      }
     }
   }
 }
