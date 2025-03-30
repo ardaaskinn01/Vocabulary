@@ -12,8 +12,8 @@ import 'alphabet.dart';
 import 'category_screen.dart';
 import 'friends.dart';
 import 'leaderboard.dart';
-import 'login_screen.dart';
 import 'package:auto_size_text/auto_size_text.dart';
+import 'dart:math';
 
 class MainPage extends StatefulWidget {
   const MainPage({Key? key}) : super(key: key);
@@ -28,6 +28,9 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
   String? userId;
   Map<String, Map<String, dynamic>> categoryResults = {};
   late TabController _tabController;
+  final TextEditingController _mathController = TextEditingController();
+  int _num1 = 0;
+  int _num2 = 0;
 
   Future<void> saveUnlockedCategory(String category) async {
     if (category != ("grammar") || category != "alphabet" || !category.contains("simplepresent") ) {
@@ -115,18 +118,6 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
           .collection("users").doc(userId).collection("results").doc(category).delete(); // İlgili kategori dokümanını sil
     } catch (e) {
       print("Sıfırlama hatası: $e");
-    }
-  }
-
-  Future<void> _logout() async {
-    try {
-      await _auth.signOut(); // Firebase Auth ile oturumu kapat
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()), // Giriş ekranına yönlendir
-      );
-    } catch (e) {
-      print("Çıkış yapma hatası: $e");
     }
   }
 
@@ -348,72 +339,52 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
   }
 
   void _showParentalGate(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false, // Kullanıcı pencereyi kapatamaz
-      builder: (context) {
-        return AlertDialog(
-          title: Text("Erişim Doğrulama"),
-          content: Text("18 yaşından büyük müsünüz veya ebeveyn izniniz var mı?"),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Hayır seçilirse pencere kapanır
-              },
-              child: Text("Hayır"),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _showAgeVerificationDialog(context); // Evet seçilirse yaş doğrulama ekranı açılır
-              },
-              child: Text("Evet"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showAgeVerificationDialog(BuildContext context) {
-    TextEditingController _ageController = TextEditingController();
+    // Rastgele iki rakam seç
+    _num1 = Random().nextInt(10); // 0-99 arasında rastgele bir sayı
+    _num2 = Random().nextInt(10); // 0-99 arasında rastgele bir sayı
 
     showDialog(
       context: context,
-      barrierDismissible: false, // Kullanıcı pencereyi kapatamaz
+      barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          title: Text("Yaş Doğrulama"),
+          title: Text("Ebeveyn Doğrulama"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("Lütfen yaşınızı girin:"),
+              Text("Lütfen aşağıdaki matematik sorusunu çözerek devam edin:"),
+              SizedBox(height: 10),
+              Text(
+                "$_num1 + $_num2 = ?",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               SizedBox(height: 10),
               TextField(
-                controller: _ageController,
+                controller: _mathController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(),
-                  hintText: "Yaşınızı girin",
+                  hintText: "Cevabınızı girin",
                 ),
               ),
             ],
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Pencereyi kapat
-              },
+              onPressed: () => Navigator.of(context).pop(),
               child: Text("İptal"),
             ),
             TextButton(
               onPressed: () {
-                int age = int.tryParse(_ageController.text) ?? 0;
-                if (age >= 18) {
+                int answer = int.tryParse(_mathController.text) ?? 0;
+                if (answer == (_num1 + _num2)) { // Doğru cevap kontrolü
                   Navigator.of(context).pop();
-                  _openPremiumScreen(context); // 18 yaşından büyükse premium ekranı aç
+                  _openPremiumScreen(context);
                 } else {
-                  Navigator.of(context).pop(); // 18 yaşından küçükse pencere kapanır
+                  // Yanlışsa tekrar denemesini iste
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Yanlış cevap, tekrar deneyin!"))
+                  );
                 }
               },
               child: Text("Onayla"),

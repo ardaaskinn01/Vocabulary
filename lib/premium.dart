@@ -262,28 +262,32 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
     );
   }
 
-  // 📌 **Abonelik satın alma işlemini başlat**
   Future<void> _purchasePremium(PremiumProvider provider) async {
     if (_products.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text("Ürünler yüklenemedi, lütfen tekrar deneyin.")),
+        const SnackBar(content: Text("⚠️ Ürünler yüklenemedi, lütfen tekrar deneyin.")),
       );
       return;
     }
 
     final ProductDetails product = _products.firstWhere(
-      (product) =>
-          product.id ==
-          'premiumsub',
+          (product) => product.id == 'premiumsub',
       orElse: () => _products.first,
     );
 
     final PurchaseParam purchaseParam = PurchaseParam(productDetails: product);
-    bool success = await _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
-    if (!success) {
+
+    try {
+      bool success = await _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
+      if (!success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("❌ Satın alma işlemi başlatılamadı!")),
+        );
+      }
+    } catch (e) {
+      print("🔥 Satın alma hatası: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("❌ Satın alma işlemi başlatılamadı!")),
+        SnackBar(content: Text("⚠️ Satın alma işlemi sırasında hata oluştu: $e")),
       );
     }
   }
@@ -305,32 +309,45 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
         }),
       );
 
-      // ⏹️ Yüklenme durumunu kapat
-      setState(() => _isLoading = false);
-
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
+
         if (responseData['success']) {
           print("✅ Satın alma doğrulandı!");
 
           // 📌 Firestore'a abonelik bilgilerini kaydet
           await _firestore.collection("users").doc(userId).update({
             "isPremium": true,
-            "subscriptionEnd": responseData['expiresDate'], // 📌 Abonelik bitiş tarihi
+            "subscriptionEnd": responseData['expiresDate'],
           });
 
           // 📌 Kullanıcının premium olup olmadığını kontrol et
           _checkSubscriptionStatus();
+
+          // ✅ Kullanıcıya başarı mesajı göster
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("🎉 Premium aboneliğiniz aktif!")),
+          );
         } else {
           print("❌ Satın alma doğrulanamadı.");
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("❌ Satın alma doğrulanamadı! ${responseData['error']}")),
+          );
         }
       } else {
         throw Exception("❌ Sunucu hatası: ${response.statusCode}");
       }
     } catch (e) {
-      // ⏹️ Hata durumunda yüklenme durumunu kapat
-      setState(() => _isLoading = false);
       print("🔥 Hata: $e");
+
+      // ❌ Kullanıcıya hata mesajı göster
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("⚠️ Satın alma işlemi başarısız: $e")),
+      );
+    } finally {
+      // ⏹️ Yüklenme durumunu kapat
+      setState(() => _isLoading = false);
     }
   }
 
