@@ -75,7 +75,7 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        duration: Duration(seconds: 6),
+        duration: Duration(seconds: 3),
       ),
     );
   }
@@ -243,21 +243,20 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
   void _listenToPurchases() {
     _inAppPurchase.purchaseStream.listen(
           (List<PurchaseDetails> purchases) async {
-        try {
-          for (var purchase in purchases) {
-            print("🛒 Satın alma işlemi: ${purchase.status}");
-            if (purchase.status == PurchaseStatus.purchased) {
-              await _verifyPurchase(purchase);
-            } else if (purchase.status == PurchaseStatus.error) {
-              print("❌ Satın alma başarısız: ${purchase.error}");
-            }
+        for (var purchase in purchases) {
+          print("🛒 Satın alma işlemi alındı: ${purchase.status}");
+          if (purchase.status == PurchaseStatus.purchased) {
+            _showMessage("✅ Satın alma işlemi başarılı!");
+            await _verifyPurchase(purchase);
+          } else if (purchase.status == PurchaseStatus.error) {
+            print("❌ Satın alma hatası: ${purchase.error}");
+            _showMessage("❌ Satın alma başarısız: ${purchase.error?.message}");
           }
-        } catch (e) {
-          print("🔥 Dinleyici hatası: $e");
         }
       },
       onError: (error) {
         print("🔥 purchaseStream hatası: $error");
+        _showMessage("🔥 Satın alma dinleyicisinde hata oluştu: $error");
       },
     );
   }
@@ -280,15 +279,10 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
     try {
       bool success = await _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
       if (!success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("❌ Satın alma işlemi başlatılamadı!")),
-        );
+        _showMessage("❌ Satın alma işlemi başlatılamadı!");
       }
     } catch (e) {
-      print("🔥 Satın alma hatası: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("⚠️ Satın alma işlemi sırasında hata oluştu: $e")),
-      );
+      _showMessage("⚠️ Satın alma işlemi sırasında hata oluştu: $e");
     }
   }
 
@@ -296,7 +290,11 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
     if (userId == null) return;
 
     try {
-      // 🔄 Yüklenme durumunu başlat
+      // 🔄 Kullanıcıya yükleniyor mesajı göster
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("⏳ Satın alma doğrulanıyor...")),
+      );
+
       setState(() => _isLoading = true);
 
       final response = await http.post(
@@ -315,16 +313,13 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
         if (responseData['success']) {
           print("✅ Satın alma doğrulandı!");
 
-          // 📌 Firestore'a abonelik bilgilerini kaydet
           await _firestore.collection("users").doc(userId).update({
             "isPremium": true,
             "subscriptionEnd": responseData['expiresDate'],
           });
 
-          // 📌 Kullanıcının premium olup olmadığını kontrol et
           _checkSubscriptionStatus();
 
-          // ✅ Kullanıcıya başarı mesajı göster
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("🎉 Premium aboneliğiniz aktif!")),
           );
@@ -336,17 +331,22 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
           );
         }
       } else {
-        throw Exception("❌ Sunucu hatası: ${response.statusCode}");
+        String errorMessage = "❌ Sunucu hatası: ${response.statusCode}";
+        if (response.statusCode == 400) {
+          errorMessage = "⚠️ Geçersiz istek. Lütfen tekrar deneyin.";
+        } else if (response.statusCode == 500) {
+          errorMessage = "🚨 Sunucu hatası! Daha sonra tekrar deneyin.";
+        }
+
+        throw Exception(errorMessage);
       }
     } catch (e) {
       print("🔥 Hata: $e");
 
-      // ❌ Kullanıcıya hata mesajı göster
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("⚠️ Satın alma işlemi başarısız: $e")),
       );
     } finally {
-      // ⏹️ Yüklenme durumunu kapat
       setState(() => _isLoading = false);
     }
   }
