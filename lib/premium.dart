@@ -24,6 +24,7 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
   bool isLoading = true;
   bool _isLoading = false;
   bool _isPurchasing = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -92,11 +93,11 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
       appBar: AppBar(title: const Text("Premium Satın Al")),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+          ? Center(child: Text(_errorMessage!))
           : _products.isEmpty
-              ? const Center(child: Text("Satın alma seçenekleri yüklenemedi."))
-              : const Center(
-                  child: Text("Premium bilgileri yüklendi."),
-                ),
+          ? const Center(child: Text("Satın alma seçenekleri yüklenemedi."))
+          : const Center(child: Text("Premium bilgileri yüklendi.")),
     );
   }
 
@@ -241,48 +242,72 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
 
   // 📌 **Satın alma işlemlerini dinle ve doğrula**
   void _listenToPurchases() {
-    _inAppPurchase.purchaseStream.listen(
-          (List<PurchaseDetails> purchases) async {
-        for (var purchase in purchases) {
-          print("🛒 Satın alma işlemi alındı: ${purchase.status}");
-          if (purchase.status == PurchaseStatus.purchased) {
-            _showMessage("✅ Satın alma işlemi başarılı!");
-            await _verifyPurchase(purchase);
-          } else if (purchase.status == PurchaseStatus.error) {
-            print("❌ Satın alma hatası: ${purchase.error}");
-            _showMessage("❌ Satın alma başarısız: ${purchase.error?.message}");
-          }
-        }
-      },
-      onError: (error) {
-        print("🔥 purchaseStream hatası: $error");
-        _showMessage("🔥 Satın alma dinleyicisinde hata oluştu: $error");
-      },
-    );
+    _inAppPurchase.purchaseStream.listen((purchases) {
+      for (final purchase in purchases) {
+        _handlePurchase(purchase);
+      }
+    });
+  }
+
+  void _handlePurchase(PurchaseDetails purchase) async {
+    switch (purchase.status) {
+      case PurchaseStatus.pending:
+        _showMessage("⏳ İşlem bekleniyor");
+        break;
+
+      case PurchaseStatus.purchased:
+        await _verifyPurchase(purchase);
+        await _inAppPurchase.completePurchase(purchase); // Kritik!
+        break;
+
+      case PurchaseStatus.error:
+        _showMessage("❌ Hata: ${purchase.error?.message}");
+        setState(() => _isPurchasing = false);
+        break;
+
+      case PurchaseStatus.canceled:
+        _showMessage("❌ İptal edildi");
+        setState(() => _isPurchasing = false);
+        break;
+
+      case PurchaseStatus.restored:
+        await _verifyPurchase(purchase);
+        break;
+    }
   }
 
   Future<void> _purchasePremium(PremiumProvider provider) async {
     if (_products.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("⚠️ Ürünler yüklenemedi, lütfen tekrar deneyin.")),
+        const SnackBar(content: Text("⚠️ Ürünler yüklenemedi")),
       );
       return;
     }
 
-    final ProductDetails product = _products.firstWhere(
-          (product) => product.id == 'premiumsub',
-      orElse: () => _products.first,
-    );
-
-    final PurchaseParam purchaseParam = PurchaseParam(productDetails: product);
+    setState(() => _isPurchasing = true);
 
     try {
-      bool success = await _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
-      if (!success) {
-        _showMessage("❌ Satın alma işlemi başlatılamadı!");
+      final product = _products.firstWhere(
+            (p) => p.id == 'premiumsub',
+        orElse: () => _products.first,
+      );
+
+      final param = PurchaseParam(productDetails: product);
+      final purchaseResult = await _inAppPurchase.buyNonConsumable(purchaseParam: param);
+
+      if (!purchaseResult) {
+        _showMessage("❌ İşlem başlatılamadı");
       }
     } catch (e) {
-      _showMessage("⚠️ Satın alma işlemi sırasında hata oluştu: $e");
+      setState(() {
+        isLoading = false;
+        _errorMessage = "Bir hata oluştu: $e";
+      });
+      _showMessage("⚠️ Hata: ${e.toString()}");
+    } finally {
+      if (mounted) {
+        setState(() => _isPurchasing = false);
+      }
     }
   }
 
