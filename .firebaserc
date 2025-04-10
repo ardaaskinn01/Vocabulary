@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "ingilizce-e826d"
-  }
+    "default": "ingilizce-e826d",
+    "ingilizce": "ingilizce-e826d"
+  },
+  "targets": {},
+  "etags": {}
 }

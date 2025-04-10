@@ -2,5 +2,14 @@
   "dependencies": {
     "dotenv": "^16.4.7",
     "firebase-functions": "^6.3.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.24.0",
+    "@types/node": "^22.14.0",
+    "@typescript-eslint/parser": "^8.29.1",
+    "eslint": "^9.24.0",
+    "eslint-config-google": "^0.14.0",
+    "eslint-plugin-node": "^11.1.0",
+    "globals": "^16.0.0"
   }
 }

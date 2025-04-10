@@ -1,30 +1,23 @@
 module.exports = {
   env: {
-    es6: true,
     node: true,
-  },
-  parserOptions: {
-    ecmaVersion: 2018,
+    es2020: true,
   },
   extends: [
     "eslint:recommended",
-    "google",
+    "google"
   ],
-  rules: {
-    "no-restricted-globals": ["error", "name", "length"],
-    "prefer-arrow-callback": "error",
-    "quotes": ["error", "double", {"allowTemplateLiterals": true}],
-    "max-len": ["error", {"code": 200}],
-    "require-jsdoc": "off",
+  parserOptions: {
+    ecmaVersion: 2020,
   },
-  overrides: [
-    {
-      files: ["**/*.spec.*"],
-      env: {
-        mocha: true,
-      },
-      rules: {},
-    },
-  ],
-  globals: {},
+  rules: {
+    "no-undef": "off",
+    "quotes": ["error", "double"],
+    "indent": ["error", 2],
+    "require-jsdoc": "off",
+    "max-len": ["error", { "code": 120 }],
+  },
+  globals: {
+    process: "readonly"
+  }
 };

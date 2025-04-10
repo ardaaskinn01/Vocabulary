@@ -6,8 +6,8 @@ require("dotenv").config();
 
 admin.initializeApp();
 
-const googleApiKey = process.env.GOOGLE_API_KEY;
-const appleSharedSecret = process.env.APPLE_SHARED_SECRET;
+const googleApiKey = "AIzaSyCQzb7Jo_QpAxLl6fe2lf3z1YSOIUTaVAk"
+const appleSharedSecret = "6f89c9b9893b4689a79e4d35b4169ad6"
 
 const app = express();
 app.use(express.json());
@@ -23,34 +23,42 @@ async function verifyAppleReceipt(receiptData) {
       "exclude-old-transactions": true,
     });
 
-    // Sandbox testi
+    // Apple receipt status logu eklendi
+    console.log("Apple receipt status (prod):", response.data.status);
+
     if (response.data.status === 21007) {
       response = await axios.post(sandboxUrl, {
         "receipt-data": receiptData,
         "password": appleSharedSecret,
         "exclude-old-transactions": true,
       });
+
+      // Sandbox durumu loglandı
+      console.log("Apple receipt status (sandbox):", response.data.status);
     }
 
     if (response.data.status === 0) {
-      const latestReceipt = (response.data.latest_receipt_info && response.data.latest_receipt_info.length > 0) ?
-         response.data.latest_receipt_info[response.data.latest_receipt_info.length - 1] :
-         response.data.receipt;
+      const latestReceipt =
+        response.data.latest_receipt_info?.length > 0
+          ? response.data.latest_receipt_info[response.data.latest_receipt_info.length - 1]
+          : response.data.receipt;
+
       const expiresDateMs = parseInt(latestReceipt.expires_date_ms);
-      return {valid: true, expiresDate: expiresDateMs};
+      return { valid: true, expiresDate: expiresDateMs };
     }
-    return {valid: false};
+
+    return { valid: false };
   } catch (error) {
     console.error("Apple receipt verification error:", error);
-    return {valid: false};
+    return { valid: false };
   }
 }
 
 app.post("/verifyPurchase", async (req, res) => {
-  const {userId, purchaseToken, platform} = req.body;
+  const { userId, purchaseToken, platform } = req.body;
 
   if (!userId || !purchaseToken || !platform) {
-    return res.status(400).json({success: false, message: "Eksik parametreler."});
+    return res.status(400).json({ success: false, message: "Eksik parametreler." });
   }
 
   try {
@@ -61,8 +69,13 @@ app.post("/verifyPurchase", async (req, res) => {
       const googleApiUrl = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.aasoft.ingilizce/purchases/subscriptions/premiumaccess1/tokens/${purchaseToken}`;
 
       const googleResponse = await axios.get(`${googleApiUrl}?key=${googleApiKey}`);
-      isValidPurchase = googleResponse.data.purchaseState === 0;
-      expiresDate = googleResponse.data.expiryTimeMillis;
+      const data = googleResponse.data;
+
+      // Yeni kontrol: hem purchaseState hem acknowledgementState kontrolü
+      isValidPurchase = data.purchaseState === 0 && data.acknowledgementState === 1;
+      expiresDate = data.expiryTimeMillis;
+
+      console.log("Google Play yanıtı:", data);
     } else if (platform === "ios") {
       const result = await verifyAppleReceipt(purchaseToken);
       isValidPurchase = result.valid;
@@ -71,9 +84,16 @@ app.post("/verifyPurchase", async (req, res) => {
 
     if (isValidPurchase) {
       try {
-        await admin.firestore().collection("users").doc(userId).update({
+        // Kullanıcı yoksa yeni doküman oluşturulacak şekilde güncellendi
+        await admin.firestore().collection("users").doc(userId).set({
           isPremium: true,
           subscriptionEnd: expiresDate,
+        }, { merge: true });
+
+        return res.json({
+          success: true,
+          message: "Premium doğrulandı!",
+          expiresDate,
         });
       } catch (error) {
         console.error("Firestore güncelleme hatası:", error);
@@ -83,12 +103,6 @@ app.post("/verifyPurchase", async (req, res) => {
           error: error.message,
         });
       }
-
-      return res.json({
-        success: true,
-        message: "Premium doğrulandı!",
-        expiresDate,
-      });
     } else {
       return res.status(403).json({
         success: false,
@@ -104,6 +118,5 @@ app.post("/verifyPurchase", async (req, res) => {
     });
   }
 });
-
 
 exports.verifyPurchase = functions.https.onRequest(app);
