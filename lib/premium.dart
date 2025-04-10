@@ -66,6 +66,11 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
           _products = response.productDetails;
         });
         _showMessage("✅ Ürünler başarıyla yüklendi!");
+        if (mounted && _products.isNotEmpty) {
+          Future.delayed(Duration(milliseconds: 100), () {
+            _showPurchaseDialog(context);
+          });
+        }
       }
     } catch (e) {
       _showMessage("🔥 Ürünleri yüklerken hata oluştu: $e");
@@ -83,12 +88,6 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!isLoading && _products.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showPurchaseDialog(context);
-      });
-    }
-
     return Scaffold(
       appBar: AppBar(title: const Text("Premium Satın Al")),
       body: isLoading
@@ -97,7 +96,14 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
           ? Center(child: Text(_errorMessage!))
           : _products.isEmpty
           ? const Center(child: Text("Satın alma seçenekleri yüklenemedi."))
-          : const Center(child: Text("Premium bilgileri yüklendi.")),
+          : Center(
+        child: ElevatedButton(
+          onPressed: () {
+            _showPurchaseDialog(context);
+          },
+          child: const Text("Premium Ol"),
+        ),
+      ),
     );
   }
 
@@ -293,11 +299,8 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
       );
 
       final param = PurchaseParam(productDetails: product);
-      final purchaseResult = await _inAppPurchase.buyNonConsumable(purchaseParam: param);
+      await _inAppPurchase.buyNonConsumable(purchaseParam: param);
 
-      if (!purchaseResult) {
-        _showMessage("❌ İşlem başlatılamadı");
-      }
     } catch (e) {
       setState(() {
         isLoading = false;
