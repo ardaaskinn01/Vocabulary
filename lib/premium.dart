@@ -284,35 +284,37 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
 
   Future<void> _purchasePremium(PremiumProvider provider) async {
     if (_products.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("⚠️ Ürünler yüklenemedi")),
-      );
+      _showMessage("⚠️ Ürünler yüklenemedi");
       return;
     }
 
     setState(() => _isPurchasing = true);
 
     try {
+      // ✅ Ürünü güvenli şekilde bul
       final product = _products.firstWhere(
             (p) => p.id == 'premiumsub',
-        orElse: () => _products.first,
+        orElse: () {
+          _showMessage("⚠️ Belirtilen ürün bulunamadı, varsayılan ürün kullanılacak.");
+          return _products.first;
+        },
       );
 
-      final param = PurchaseParam(productDetails: product);
+      final param = PurchaseParam(
+        productDetails: product,
+        applicationUserName: userId, // iOS için önemlidir
+      );
+
+      // ✅ Satın alma işlemi başlat
       await _inAppPurchase.buyNonConsumable(purchaseParam: param);
 
     } catch (e) {
-      setState(() {
-        isLoading = false;
-        _errorMessage = "Bir hata oluştu: $e";
-      });
-      _showMessage("⚠️ Hata: ${e.toString()}");
+      _showMessage("⚠️ Satın alma sırasında hata: ${e.toString()}");
     } finally {
-      if (mounted) {
-        setState(() => _isPurchasing = false);
-      }
+      if (mounted) setState(() => _isPurchasing = false);
     }
   }
+
 
   Future<void> _verifyPurchase(PurchaseDetails purchase) async {
     if (userId == null) return;
