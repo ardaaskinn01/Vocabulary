@@ -9,6 +9,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
+import 'package:collection/collection.dart';
 
 class PremiumPurchaseScreen extends StatefulWidget {
   @override
@@ -292,13 +293,12 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
 
     try {
       // ✅ Ürünü güvenli şekilde bul
-      final product = _products.firstWhere(
-            (p) => p.id == 'premiumsub',
-        orElse: () {
-          _showMessage("⚠️ Belirtilen ürün bulunamadı, varsayılan ürün kullanılacak.");
-          return _products.first;
-        },
-      );
+      final product = _products.firstWhereOrNull((p) => p.id == 'premiumsub');
+
+      if (product == null) {
+        _showMessage("⚠️ Ürün bulunamadı");
+        return;
+      }
 
       final param = PurchaseParam(
         productDetails: product,

@@ -50,12 +50,12 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
 
   // Her kategoriye özel toplam soru sayısı
   final Map<String, int> categoryTotalQuestions = {
-    "family tree": 10, "colors": 11, "numbers": 20, "fruits": 20, "animals": 30, "vegetables": 20, "adjectives": 19, "bodyparts": 22, "clothes": 23, "countries": 13, "verbs": 22, "verbs2": 21, "shapes": 10, "emotions": 9, "jobs": 11, "workplaces": 22, "vehicles": 16, "households": 26, "space": 15, "grammar": 0, "alphabet": 0, "simplepresent": 0, "simplepresent2": 0, "simplepresent3": 0, "simplepresent4": 0, "prepositions": 10, "numbers2": 21, "directions": 18, "basicmath": 17, "basicmath2": 16, "midverbs": 19, "midverbs2": 20, "midverbs3": 20, "midverbs4": 20, "midverbs5": 19, "midverbs6": 19, "midverbs7": 17, "midverbs8": 17, "midverbs9": 16, "midverbs10": 24, "school": 18, "school2": 15, "football": 20, "football2": 20, "football3": 17
+    "family tree": 10, "colors": 11, "numbers": 20, "fruits": 20, "animals": 30, "vegetables": 20, "adjectives": 19, "bodyparts": 22, "clothes": 23, "countries": 13, "verbs": 22, "verbs2": 21, "shapes": 10, "emotions": 9, "jobs": 11, "workplaces": 22, "vehicles": 16, "households": 26, "space": 15, "grammar": 0, "alphabet": 0, "simplepresent": 0, "simplepresent2": 0, "simplepresent3": 0, "simplepresent4": 0, "prepositions": 10, "numbers2": 21, "directions": 18, "basicmath": 17, "basicmath2": 16, "midverbs": 19, "midverbs2": 20, "midverbs3": 20, "midverbs4": 20, "midverbs5": 19, "midverbs6": 19, "midverbs7": 17, "midverbs8": 17, "midverbs9": 16, "midverbs10": 24, "school": 18, "school2": 15, "football": 20, "football2": 20, "football3": 17, "basketball": 17, "basketball2": 15, "othersports": 16, "othersports2": 14, "phrasalverbs": 16, "phrasalverbs2": 14, "idioms": 20, "chess": 19, "chess2": 19, "childrengames": 17, "carparts": 20, "carparts2": 20, "makeup": 13, "grammarpre": 0, "pasttense": 0, "presentct": 0, "pastct": 0, "tellingthetime": 0
   };
 
   // Kategorilerin kilidinin bir kez açılıp açılmadığını takip eden harita
   final Map<String, bool> categoryUnlockedStatus = {
-    "family tree": false, "colors": false, "numbers": false, "fruits": false, "animals": false, "vegetables": false, "adjectives": false, "bodyparts": false, "clothes": false, "countries": false, "verbs": false, "verbs2": false, "shapes": false, "emotions": false, "jobs": false, "workplaces": false, "vehicles": false, "households": false, "space": false, "alphabet": false, "grammar": false, "simplepresent": false, "simplepresent2": false, "simplepresent3": false, "simplepresent4": false, "prepositions": false, "numbers2": false, "directions": false, "basicmath": false, "basicmath2": false, "midverbs": false, "midverbs2": false, "midverbs3": false, "midverbs4": false, "midverbs5": false, "midverbs6": false, "midverbs7": false, "midverbs8": false, "midverbs9": false, "midverbs10": false, "school": false, "school2": false, "football": false, "football2": false, "football3": false
+    "family tree": false, "colors": false, "numbers": false, "fruits": false, "animals": false, "vegetables": false, "adjectives": false, "bodyparts": false, "clothes": false, "countries": false, "verbs": false, "verbs2": false, "shapes": false, "emotions": false, "jobs": false, "workplaces": false, "vehicles": false, "households": false, "space": false, "alphabet": false, "grammar": false, "simplepresent": false, "simplepresent2": false, "simplepresent3": false, "simplepresent4": false, "prepositions": false, "numbers2": false, "directions": false, "basicmath": false, "basicmath2": false, "midverbs": false, "midverbs2": false, "midverbs3": false, "midverbs4": false, "midverbs5": false, "midverbs6": false, "midverbs7": false, "midverbs8": false, "midverbs9": false, "midverbs10": false, "school": false, "school2": false, "football": false, "football2": false, "football3": false, "basketball": false, "basketball2": false, "othersports": false, "othersports2": false, "phrasalverbs": false, "phrasalverbs2": false, "idioms": false, "chess": false, "chess2": false, "childrengames": false, "carparts": false, "carparts2": false, "makeup": false, "grammarpre": false, "pasttense": false, "presentct": false, "pastct": false, "tellingthetime": false
   };
 
   @override
@@ -283,9 +283,27 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                         buildCategoryCard(context, "School Items 2", "school2"),
                         buildCategoryCard(context, "Football", "football"),
                         buildCategoryCard(context, "Football 2", "football2"),
-                        buildCategoryCard(context, "Football 3", "football3",),
+                        buildCategoryCard(context, "Football 3", "football3"),
+                        buildCategoryCard(context, "Basketball", "basketball"),
+                        buildCategoryCard(context, "Basketball 2", "basketball2"),
+                        buildCategoryCard(context, "Other Sports", "othersports"),
+                        buildCategoryCard(context, "Phrasal Verbs", "phrasalverbs"),
+                        buildCategoryCard(context, "Phrasal Verbs 2", "phrasalverbs2"),
+                        buildCategoryCard(context, "Idioms", "idioms"),
+                        buildCategoryCard(context, "Chess", "chess"),
+                        buildCategoryCard(context, "Chess 2", "chess2"),
+                        buildCategoryCard(context, "Children Games", "childrengames"),
+                        buildCategoryCard(context, "Car Parts", "carparts"),
+                        buildCategoryCard(context, "Car Parts 2", "carparts2"),
+                        buildCategoryCard(context, "Make Up", "makeup"),
                       ],
-                      [],
+                      [
+                        buildCategoryCard(context, "Prepositions", "grammarpre"),
+                        buildCategoryCard(context, "Past Tense", "pasttense"),
+                        buildCategoryCard(context, "Present Continious Tense", "presentct"),
+                        buildCategoryCard(context, "Past Continious Tense", "pastct"),
+                        buildCategoryCard(context, "Telling The Time", "tellingthetime"),
+                      ],
                     )
                         : _buildLockedTab(),
 
