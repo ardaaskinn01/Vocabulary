@@ -332,7 +332,9 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           "userId": userId,
-          "purchaseToken": purchase.verificationData.serverVerificationData,
+          "purchaseToken": Platform.isAndroid
+              ? purchase.verificationData.serverVerificationData
+              : purchase.verificationData.localVerificationData,
           "platform": Platform.isAndroid ? "android" : "ios",
         }),
       );
