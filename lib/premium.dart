@@ -98,12 +98,7 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
           : _products.isEmpty
           ? const Center(child: Text("Satın alma seçenekleri yüklenemedi."))
           : Center(
-        child: ElevatedButton(
-          onPressed: () {
-            _showPurchaseDialog(context);
-          },
-          child: const Text("Premium Ol"),
-        ),
+        child: Text("Premium bilgileri yüklendi."),
       ),
     );
   }
@@ -328,7 +323,7 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
       setState(() => _isLoading = true);
 
       final response = await http.post(
-        Uri.parse('https://us-central1-ingilizce-e826d.cloudfunctions.net/verifyPurchase'),
+        Uri.parse('https://verifypurchase-dy53ebmesa-uc.a.run.app/verifyPurchase'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           "userId": userId,
