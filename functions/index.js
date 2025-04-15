@@ -140,11 +140,13 @@ app.post("/verifyPurchase", async (req, res) => {
         });
       }
     } else {
-      return res.status(403).json({
-        success: false,
-        message: "Satın alma geçersiz.",
-        debug: responseMeta,
-      });
+       return res.status(403).json({
+          success: false,
+          message: "Satın alma geçersiz.",
+          reason: responseMeta.reason || "Geçerli cevap alınamadı",
+          appleStatus: responseMeta.fullResponse?.status,
+          fullResponse: responseMeta.fullResponse,
+        });
     }
 
   } catch (error) {
