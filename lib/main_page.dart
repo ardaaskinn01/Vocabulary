@@ -575,7 +575,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
     Color statusColor = Colors.grey;
     String scoreText = "Puan: ${score ?? 0}";
 
-    if (category == "grammar" || category == "alphabet" || category.contains("simplepresent") || category == "grammarpre" || category == "pasttense" || category == "presentct" || category == "pastct" || category == "tellingthetime" || category == "futuretense" || category == "should" || category == "must" || category == "haveto" ) {
+    if (category == "grammar" || category == "alphabet" || category.contains("simplepresent") || category == "grammarpre" || category == "pasttense" || category == "presentct" || category == "pastct" || category == "tellingthetime" || category == "futuretense" || category == "should" || category == "must" || category == "haveto" || category == "maymight" || category == "presentpt" || category == "pastpt" || category == "ifclause" || category == "nounclause" || category == "relativeclause" || category == "adverbialclause" || category == "passivevoice" || category == "compandsuper" || category == "gerundinf" || category == "articles" || category == "grammarphrasal") {
       statusText = "";
       scoreText = "";
     }
