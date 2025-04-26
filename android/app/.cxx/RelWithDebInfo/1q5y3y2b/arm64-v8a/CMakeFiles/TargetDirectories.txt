@@ -1,0 +1,2 @@
+C:/Users/ardaa/StudioProjects/Vocabulary/android/app/.cxx/RelWithDebInfo/1q5y3y2b/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/Users/ardaa/StudioProjects/Vocabulary/android/app/.cxx/RelWithDebInfo/1q5y3y2b/arm64-v8a/CMakeFiles/rebuild_cache.dir
