@@ -241,7 +241,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                         buildCategoryCard(context, "Clothes", "clothes", isLocked: true),
                         buildCategoryCard(context, "Countries", "countries", isLocked: true),
                         buildCategoryCard(context, "Verbs", "verbs", isLocked: true),
-                        buildCategoryCard(context, "Verbs 2", "verbs2", isLocked: true),
+                        buildCategoryCard(context, "Verbs II", "verbs2", isLocked: true),
                         buildCategoryCard(context, "Shapes", "shapes", isLocked: true),
                         buildCategoryCard(context, "Emotions", "emotions", isLocked: true),
                         buildCategoryCard(context, "Jobs", "jobs", isLocked: true),
@@ -253,63 +253,60 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                       [
                         buildCategoryCard(context, "Alphabet", "alphabet"),
                         buildCategoryCard(context, "Grammar I", "grammar"),
-                        buildCategoryCard(context, "Simple Present Tense I", "simplepresent"),
-                        buildCategoryCard(context, "Simple Present Tense II", "simplepresent2"),
-                        buildCategoryCard(context, "Simple Present Tense III", "simplepresent3"),
-                        buildCategoryCard(context, "Simple Present Tense IIII", "simplepresent4"),
+                        buildCategoryCard(context, "Simple Present I", "simplepresent"),
+                        buildCategoryCard(context, "Simple Present II", "simplepresent2"),
+                        buildCategoryCard(context, "Simple Present III", "simplepresent3"),
+                        buildCategoryCard(context, "Simple Present IIII", "simplepresent4"),
                       ],
                     ),
-
-                    // Orta seviye (premium kontrolü)
-                    isPremium
-                        ? buildCategorySection(
+                    buildCategorySection(
                       [
                         buildCategoryCard(context, "Prepositions", "prepositions"),
-                        buildCategoryCard(context, "Numbers 2", "numbers2"),
+                        buildCategoryCard(context, "Numbers II", "numbers2"),
                         buildCategoryCard(context, "Directions", "directions"),
                         buildCategoryCard(context, "Basic Math", "basicmath"),
-                        buildCategoryCard(context, "Basic Math 2", "basicmath2"),
+                        buildCategoryCard(context, "Basic Math II", "basicmath2"),
                         buildCategoryCard(context, "Mid-Verbs", "midverbs"),
-                        buildCategoryCard(context, "Mid-Verbs 2", "midverbs2"),
-                        buildCategoryCard(context, "Mid-Verbs 3", "midverbs3"),
-                        buildCategoryCard(context, "Mid-Verbs 4", "midverbs4"),
-                        buildCategoryCard(context, "Mid-Verbs 5", "midverbs5"),
-                        buildCategoryCard(context, "Mid-Verbs 6", "midverbs6"),
-                        buildCategoryCard(context, "Mid-Verbs 7", "midverbs7"),
-                        buildCategoryCard(context, "Mid-Verbs 8", "midverbs8"),
-                        buildCategoryCard(context, "Mid-Verbs 9", "midverbs9"),
-                        buildCategoryCard(context, "Mid-Verbs 10", "midverbs10"),
+                        buildCategoryCard(context, "Mid-Verbs II", "midverbs2"),
+                        buildCategoryCard(context, "Mid-Verbs III", "midverbs3"),
+                        buildCategoryCard(context, "Mid-Verbs IV", "midverbs4"),
+                        buildCategoryCard(context, "Mid-Verbs V", "midverbs5"),
+                        buildCategoryCard(context, "Mid-Verbs VI", "midverbs6"),
+                        buildCategoryCard(context, "Mid-Verbs VII", "midverbs7"),
+                        buildCategoryCard(context, "Mid-Verbs VIII", "midverbs8"),
+                        buildCategoryCard(context, "Mid-Verbs IX", "midverbs9"),
+                        buildCategoryCard(context, "Mid-Verbs X", "midverbs10"),
                         buildCategoryCard(context, "School Items", "school"),
-                        buildCategoryCard(context, "School Items 2", "school2"),
+                        buildCategoryCard(context, "School Items II", "school2"),
                         buildCategoryCard(context, "Football", "football"),
-                        buildCategoryCard(context, "Football 2", "football2"),
-                        buildCategoryCard(context, "Football 3", "football3"),
+                        buildCategoryCard(context, "Football II", "football2"),
+                        buildCategoryCard(context, "Football III", "football3"),
                         buildCategoryCard(context, "Basketball", "basketball"),
-                        buildCategoryCard(context, "Basketball 2", "basketball2"),
+                        buildCategoryCard(context, "Basketball II", "basketball2"),
                         buildCategoryCard(context, "Other Sports", "othersports"),
                         buildCategoryCard(context, "Phrasal Verbs", "phrasalverbs"),
-                        buildCategoryCard(context, "Phrasal Verbs 2", "phrasalverbs2"),
+                        buildCategoryCard(context, "Phrasal Verbs II", "phrasalverbs2"),
                         buildCategoryCard(context, "Idioms", "idioms"),
                         buildCategoryCard(context, "Chess", "chess"),
-                        buildCategoryCard(context, "Chess 2", "chess2"),
+                        buildCategoryCard(context, "Chess II", "chess2"),
                         buildCategoryCard(context, "Children Games", "childrengames"),
                         buildCategoryCard(context, "Car Parts", "carparts"),
-                        buildCategoryCard(context, "Car Parts 2", "carparts2"),
+                        buildCategoryCard(context, "Car Parts II", "carparts2"),
                         buildCategoryCard(context, "Make Up", "makeup"),
                       ],
                       [
                         buildCategoryCard(context, "Prepositions", "grammarpre"),
                         buildCategoryCard(context, "Past Tense", "pasttense"),
-                        buildCategoryCard(context, "Present Continious Tense", "presentct"),
-                        buildCategoryCard(context, "Past Continious Tense", "pastct"),
+                        buildCategoryCard(context, "Present Continious", "presentct"),
+                        buildCategoryCard(context, "Past Continious", "pastct"),
                         buildCategoryCard(context, "Telling The Time", "tellingthetime"),
                         buildCategoryCard(context, "Future Tense", "futuretense"),
                         buildCategoryCard(context, "Should/Ought To", "should"),
                         buildCategoryCard(context, "Must", "must"),
                         buildCategoryCard(context, "Have To", "haveto"),
                         buildCategoryCard(context, "May/Might", "maymight"),
-                        buildCategoryCard(context, "Present Perfect Tense", "presentpt"),
-                        buildCategoryCard(context, "Past Perfect Tense", "pastpt"),
+                        buildCategoryCard(context, "Present Perfect", "presentpt"),
+                        buildCategoryCard(context, "Past Perfect", "pastpt"),
                         buildCategoryCard(context, "If Clause", "ifclause"),
                         buildCategoryCard(context, "Noun Clause", "nounclause"),
                         buildCategoryCard(context, "Relative Clause", "relativeclause"),
@@ -318,19 +315,15 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                         buildCategoryCard(context, "Comparative/Superlative", "compandsuper"),
                         buildCategoryCard(context, "Gerund/Infinitive", "gerundinf"),
                       ],
-                    )
-                        : _buildLockedTab(),
+                    ),
 
-                    // İleri seviye (premium kontrolü)
-                    isPremium
-                        ? buildCategorySection(
+                    buildCategorySection(
                       [],
                       [
                         buildCategoryCard(context, "Articles", "articles"),
                         buildCategoryCard(context, "Phrasal Verbs", "grammarphrasal"),
                       ],
-                    )
-                        : _buildLockedTab(),
+                    ),
                   ],
                 );
               },
@@ -590,7 +583,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
     }
 
     // Başlığın karakter uzunluğunu kontrol et
-    int maxTitleLength = 15; // Başlığın maksimum karakter uzunluğu
+    int maxTitleLength = 13; // Başlığın maksimum karakter uzunluğu
     bool isTitleLong = title.length > maxTitleLength;
 
     return GestureDetector(
@@ -625,9 +618,9 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                   color: Colors.orange.shade600,
                   letterSpacing: 0.8,
                 ),
-                maxLines: isTitleLong ? 3 : 1,  // Uzun başlıklar için 2 satır, kısa başlıklar için 1 satır
+                maxLines: isTitleLong ? 2 : 1,  // Uzun başlıklar için 2 satır, kısa başlıklar için 1 satır
                 overflow: TextOverflow.visible,  // Taşan metinler için alt satıra geç
-                minFontSize: 16,  // Fontun küçülebileceği minimum boyut
+                minFontSize: 15,  // Fontun küçülebileceği minimum boyut
                 stepGranularity: 1,  // Font boyutunun küçülme adımı
               ),
               subtitle: Column(

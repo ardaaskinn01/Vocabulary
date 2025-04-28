@@ -242,21 +242,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            _isPremium
-                ? Container()
-                : ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => PremiumPurchaseScreen()),
-                );
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent),
-              child: const Text(
-                "Premium Satın Al",
-                style: TextStyle(color: Colors.black),
-              ),
-            ),
+            Container()
           ],
         ),
       ),
