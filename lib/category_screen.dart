@@ -52,7 +52,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
   void initState() {
     super.initState();
     _fetchQuestions();
-     //_loadInterstitialAd();
+     _loadInterstitialAd();
   }
 
   void _loadInterstitialAd() {
@@ -421,7 +421,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   void _navigateToHome() async {
-    /*User? user = FirebaseAuth.instance.currentUser;
+    User? user = FirebaseAuth.instance.currentUser;
     bool isPremium = false;
 
     if (user != null) {
@@ -435,13 +435,13 @@ class _CategoryScreenState extends State<CategoryScreen> {
       }
     }
 
-    if (isPremium) {*/
+    if (isPremium) {
       // Premium kullanıcı, direkt olarak main sayfaya gider (reklam gösterilmez)
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => MainPage()),
       );
-    /*} else {
+    } else {
       // Premium değilse reklam kontrolü
       if (_isAdLoaded && _interstitialAd != null) {
         Navigator.push(
@@ -485,7 +485,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
           MaterialPageRoute(builder: (context) => MainPage()),
         );
       }
-    }*/
+    }
   }
 
 
