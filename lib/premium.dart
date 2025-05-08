@@ -103,72 +103,6 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
     );
   }
 
-  final List<String> ortaSeviyeVocabulary = [
-    "Prepositions", "Numbers II", "Directions", "Basic Math", "Basic Math II",
-    "Mid-Verbs", "Mid-Verbs II", "Mid-Verbs III", "Mid-Verbs IV", "Mid-Verbs V",
-    "Mid-Verbs VI", "Mid-Verbs VII", "Mid-Verbs VIII", "Mid-Verbs IX", "Mid-Verbs X",
-    "School Items", "School Items II", "Football", "Football II", "Football III",
-    "Basketball", "Basketball II", "Other Sports", "Phrasal Verbs", "Phrasal Verbs II",
-    "Idioms", "Chess", "Chess II", "Children Games", "Car Parts", "Car Parts II", "Make Up"
-  ];
-
-  final List<String> ortaSeviyeGrammar = [
-    "Prepositions", "Past Tense", "Present Continious", "Past Continious", "Telling The Time",
-    "Future Tense", "Should/Ought To", "Must", "Have To", "May/Might",
-    "Present Perfect", "Past Perfect", "If Clause", "Noun Clause", "Relative Clause",
-    "Adverbial Clause", "Passive Voice", "Comparative/Superlative", "Gerund/Infinitive"
-  ];
-
-  final List<String> ileriSeviyeGrammar = [
-    "Articles", "Phrasal Verbs", "Conjuctions", "Conjunctions II"
-  ];
-
-  void _showCategoryPreviewDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (_) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          backgroundColor: Colors.white,
-          title: Center(child: Text("📚 Premium Kategoriler", style: TextStyle(fontWeight: FontWeight.bold))),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildCategoryGroup("🟠 Orta Seviye Vocabulary", ortaSeviyeVocabulary),
-                const SizedBox(height: 12),
-                _buildCategoryGroup("🟠 Orta Seviye Grammar", ortaSeviyeGrammar),
-                const SizedBox(height: 12),
-                _buildCategoryGroup("🔴 İleri Seviye Grammar", ileriSeviyeGrammar),
-                const SizedBox(height: 8),
-                if (true) Text("🔴 İleri Seviye Vocabulary: Henüz içerik bulunmamaktadır.",
-                    style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
-              ],
-            ),
-          ),
-          actions: [
-            Center(
-              child: TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text("Kapat", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
-              ),
-            )
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildCategoryGroup(String title, List<String> items) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black87)),
-        const SizedBox(height: 6),
-        ...items.map((e) => Text("- $e", style: TextStyle(fontSize: 14))).toList(),
-      ],
-    );
-  }
   // 📌 **Premium Satın Alma Pop-up'ını Açma**
   void _showPurchaseDialog(BuildContext context) {
     final premiumProvider =
@@ -219,14 +153,6 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
                       "✨ Premium ile şunlara sahip olursunuz:",
                       style:
                           TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 12),
-                    Center(
-                      child: TextButton.icon(
-                        onPressed: () => _showCategoryPreviewDialog(context),
-                        icon: Icon(Icons.visibility, color: Colors.orange),
-                        label: Text("Premium Kategorileri Gör", style: TextStyle(color: Colors.orange)),
-                      ),
                     ),
                     const SizedBox(height: 12),
                     Column(

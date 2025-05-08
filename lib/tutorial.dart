@@ -14,11 +14,6 @@ class _TutorialScreenState extends State<TutorialScreen> {
   final List<String> tutorialImages = [
     "assets/images/tutorial1.png",
     "assets/images/tutorial2.png",
-    "assets/images/tutorial3.png",
-    "assets/images/tutorial4.png",
-    "assets/images/tutorial4_2.png",
-    "assets/images/tutorial5.png",
-    "assets/images/tutorial6.png",
     "assets/images/tutorial7.png",
   ];
 
