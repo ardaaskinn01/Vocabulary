@@ -336,8 +336,8 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
                             [
                               buildCategoryCard(context, "Articles", "articles", isLocked: !isPremium),
                               buildCategoryCard(context, "Phrasal Verbs", "grammarphrasal", isLocked: !isPremium),
-                              buildCategoryCard(context, "Conjuctions", "conjuctions", isLocked: !isPremium),
-                              buildCategoryCard(context, "Conjuctions II", "conjuctions2", isLocked: !isPremium),
+                              buildCategoryCard(context, "Conjunctions", "conjunctions", isLocked: !isPremium),
+                              buildCategoryCard(context, "Conjuncti-ons II", "conjunctions2", isLocked: !isPremium),
                             ],
                           ),
                         ],

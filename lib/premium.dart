@@ -163,10 +163,6 @@ class _PremiumPurchaseScreenState extends State<PremiumPurchaseScreen> {
                           title: Text(
                               "Orta ve İleri Seviye kategorilere tam erişim"),
                         ),
-                        ListTile(
-                          leading: Icon(Icons.block, color: Colors.orange),
-                          title: Text("Reklamsız kullanım"),
-                        ),
                       ],
                     ),
                     const SizedBox(height: 16),

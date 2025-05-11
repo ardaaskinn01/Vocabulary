@@ -13,17 +13,6 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'main_page.dart';
 import 'package:audioplayers/audioplayers.dart';
 
-class AdMobService {
-  static String get interstitialAdUnitId {
-    if (Platform.isAndroid) {
-      return "ca-app-pub-2709564947127483/4868532927"; // Android için AdMob geçiş reklam ID'si
-    } else if (Platform.isIOS) {
-      return "ca-app-pub-2709564947127483/9985128236"; // iOS için AdMob geçiş reklam ID'si
-    }
-    return "";
-  }
-}
-
 class CategoryScreen extends StatefulWidget {
   final String category;
 
@@ -52,29 +41,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
   void initState() {
     super.initState();
     _fetchQuestions();
-     _loadInterstitialAd();
-  }
-
-  void _loadInterstitialAd() {
-    try {
-      InterstitialAd.load(
-        adUnitId: AdMobService.interstitialAdUnitId, // Doğru ID'yi kullandığınızdan emin olun!
-        request: AdRequest(),
-        adLoadCallback: InterstitialAdLoadCallback(
-          onAdLoaded: (InterstitialAd ad) {
-            print("✅ Geçiş reklamı başarıyla yüklendi.");
-            _interstitialAd = ad;
-            _isAdLoaded = true;
-          },
-          onAdFailedToLoad: (LoadAdError error) {
-            print("❌ Geçiş reklamı yüklenemedi! Hata: $error");
-            _isAdLoaded = false;
-          },
-        ),
-      );
-    } catch (e) {
-      print("🔥 Reklam yüklerken bir hata oluştu: $e");
-    }
   }
 
   @override
@@ -421,74 +387,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   void _navigateToHome() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    bool isPremium = false;
-
-    if (user != null) {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-
-      if (userDoc.exists) {
-        isPremium = userDoc.get('isPremium') ?? false;
-      }
-    }
-
-    if (isPremium) {
-      // Premium kullanıcı, direkt olarak main sayfaya gider (reklam gösterilmez)
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => MainPage()),
       );
-    } else {
-      // Premium değilse reklam kontrolü
-      if (_isAdLoaded && _interstitialAd != null) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ParentalGate(
-              onSuccess: (bool success) {
-                if (success) {
-                  // Doğru cevap - reklam göster ve main'e yönlendir
-                  _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
-                    onAdDismissedFullScreenContent: (InterstitialAd ad) {
-                      ad.dispose();
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => MainPage()),
-                      );
-                    },
-                    onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
-                      ad.dispose();
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => MainPage()),
-                      );
-                    },
-                  );
-                  _interstitialAd!.show();
-                } else {
-                  // Yanlış cevap - direkt main page
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => MainPage()),
-                  );
-                }
-              },
-            ),
-          ),
-        );
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => MainPage()),
-        );
-      }
     }
-  }
-
-
 
   @override
   Widget build(BuildContext context) {

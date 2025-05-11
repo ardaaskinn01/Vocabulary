@@ -261,7 +261,7 @@ class _AlphabetScreenState extends State<AlphabetScreen> {
               final doc = documents[index];
               final data = doc.data() as Map<String, dynamic>?;
 
-              if (data == null) return const SizedBox.shrink(); // Veri null ise boş widget döndür
+              if (data == null) return const SizedBox.shrink();
 
               final bool isAnswer = data["isAnswer"] ?? false;
               final String? videoUrl = data.containsKey("link") ? data["link"] : null;
@@ -347,6 +347,19 @@ class _AlphabetScreenState extends State<AlphabetScreen> {
                                   ),
                                 ),
                               ),
+                            Positioned(
+                              bottom: fixedHeight * 0.0375,
+                              left: fixedWidth * 0.43,
+                              child: IconButton(
+                                icon: Icon(Icons.home, color: Colors.red, size: 32),
+                                onPressed: () {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => MainPage()),
+                                  );
+                                },
+                              ),
+                            ),
                           ],
                         ),
                       ),
