@@ -77,6 +77,7 @@ flutter:
 
   assets:
     - assets/images/bg.jpg
+    - assets/images/newbg.jpeg
     - assets/images/tutorial1.png
     - assets/images/tutorial2.png
     - assets/images/tutorial7.png
@@ -99,4 +100,4 @@ flutter:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/images/bg.jpg" # Logonun tam yolu # Android adaptive icon için
+  image_path: "assets/images/newbg.jpeg" # Logonun tam yolu # Android adaptive icon için
