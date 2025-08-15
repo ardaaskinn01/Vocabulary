@@ -122,8 +122,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   }
                 }
 
-                // Koşulu 'score > 0' yerine 'resultSnapshot.exists' olarak değiştiriyoruz
-                if (resultSnapshot.exists) {
+                // Sadece kategoriyi çözmüş kullanıcıları leaderboard'a ekle
+                if (score > 0) {
                   tempLeaderboard.add({
                     'username': username,
                     'score': score,
@@ -141,11 +141,15 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
         await Future.wait(futures);
 
-        // Yeni leaderboard dökümanını oluştur
-        await FirebaseFirestore.instance
-            .collection('leaderboards')
-            .doc(widget.category)
-            .set(leaderboardDataForDb);
+        // leaderboardDataForDb boş değilse dökümanı oluştur
+        if (leaderboardDataForDb.isNotEmpty) {
+          await FirebaseFirestore.instance
+              .collection('leaderboards')
+              .doc(widget.category)
+              .set(leaderboardDataForDb);
+        } else {
+          print("Hiçbir kullanıcı bu kategoriyi çözmediği için yeni döküman oluşturulmadı.");
+        }
       }
 
       tempLeaderboard.sort((a, b) => b['score'].compareTo(a['score']));
