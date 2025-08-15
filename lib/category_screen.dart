@@ -388,169 +388,206 @@ class _CategoryScreenState extends State<CategoryScreen> {
     );
   }
 
-  void _showLeaderboardPopup(int rank, int score) {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          backgroundColor: Colors.white,
-          title: Column(
-            children: [
-              Icon(
-                rank == 1 ? Icons.emoji_events : Icons.star,
-                color: rank == 1 ? Colors.amber : Colors.blueAccent,
-                size: 50,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                rank == 1 ? "Tebrikler!" : "Testi Tamamladın!",
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.deepPurple,
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                "Bu kategorideki sıralamanız:",
-                style: TextStyle(fontSize: 18, color: Colors.black87),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                "${rank}. sıra",
-                style: const TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.deepOrange,
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                "Puanınız:",
-                style: TextStyle(fontSize: 18, color: Colors.black87),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                "$score",
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pop(); // Ana sayfaya dön
-              },
-              child: const Text(
-                "Harika!",
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.blueAccent,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<void> _showFinalResults() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user == null || !mounted) return;
+    if (!mounted) return;
 
-    // Tüm soruların cevaplanıp cevaplanmadığını kontrol et
-    if (selectedAnswers.contains(null)) {
-      // Eğer tüm sorular cevaplanmadıysa, hiçbir şey yapma
+    // Tüm sorulara cevap verilmiş mi kontrolü
+    bool allAnswered = selectedAnswers.every((answer) => answer != null);
+    if (!allAnswered) {
+      print("Tüm sorulara cevap verilmemiş, popup gösterilmiyor");
       return;
     }
 
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null || !mounted) return;
+
     try {
-      // Liderlik tablosu dökümanını kontrol et
-      final leaderboardRef = FirebaseFirestore.instance
-          .collection('leaderboards')
-          .doc(widget.category);
-      final docSnapshot = await leaderboardRef.get();
-
-      // Liderlik tablosu yoksa, pop-up gösterme ve anasayfaya dön
-      if (!docSnapshot.exists && mounted) {
-        Navigator.of(context).pop();
-        return;
-      }
-
-      // Kullanıcının puanını hesapla
-      DocumentSnapshot resultSnapshot = await FirebaseFirestore.instance
+      // 1. Kullanıcının mevcut skorunu hesapla
+      DocumentSnapshot userResultSnapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .collection('results')
           .doc(widget.category)
           .get();
 
+      if (!mounted) return;
+
       int userScore = 0;
-      if (resultSnapshot.exists) {
-        Map<String, dynamic> resultData = resultSnapshot.data() as Map<String, dynamic>;
+      if (userResultSnapshot.exists) {
+        Map<String, dynamic> resultData = userResultSnapshot.data() as Map<String, dynamic>;
         List<int> correctAnswers = List<int>.from(resultData['correct_answers'] ?? []);
         List<int> wrongAnswers = List<int>.from(resultData['wrong_answers'] ?? []);
         userScore = (correctAnswers.length * 5) - (wrongAnswers.length * 2);
       }
 
-      // Liderlik tablosunu çek ve kullanıcının sıralamasını bul
-      DocumentSnapshot leaderboardSnapshot = await FirebaseFirestore.instance
+      // 2. Leaderboard dokümanını al
+      DocumentSnapshot leaderboardDoc = await FirebaseFirestore.instance
           .collection('leaderboards')
           .doc(widget.category)
           .get();
 
-      int userRank = 0;
-      if (leaderboardSnapshot.exists) {
-        Map<String, dynamic> leaderboardData = leaderboardSnapshot.data() as Map<String, dynamic>;
-        List<MapEntry<String, dynamic>> sortedEntries = leaderboardData.entries.toList()
-          ..sort((a, b) => (b.value['score'] as int).compareTo(a.value['score'] as int));
+      if (!mounted) return;
 
-        for (int i = 0; i < sortedEntries.length; i++) {
-          if (sortedEntries[i].key == user.uid) {
-            userRank = i + 1;
-            break;
-          }
+      if (!leaderboardDoc.exists) {
+        print("Leaderboard dokümanı bulunamadı");
+        return;
+      }
+
+      // 3. Tüm kullanıcı skorlarını ve sıralamayı hesapla
+      Map<String, dynamic> leaderboardData = leaderboardDoc.data() as Map<String, dynamic>;
+
+      // Dokümandaki tüm kullanıcıları al ve skorlarına göre sırala
+      List<Map<String, dynamic>> userList = [];
+
+      leaderboardData.forEach((userId, userData) {
+        if (userData is Map && userData['score'] != null) {
+          userList.add({
+            'userId': userId,
+            'score': userData['score'],
+            'username': userData['username'] ?? 'Anonim'
+          });
+        }
+      });
+
+      // Skora göre büyükten küçüğe sırala
+      userList.sort((a, b) => (b['score'] as int).compareTo(a['score'] as int));
+
+      // 4. Kullanıcının sırasını bul
+      int userRank = 0;
+      for (int i = 0; i < userList.length; i++) {
+        if (userList[i]['userId'] == user.uid) {
+          userRank = i + 1;
+          break;
         }
       }
 
+      // Eğer kullanıcı liderlik tablosunda yoksa, şimdi ekleyelim
+      if (userRank == 0) {
+        // Kullanıcıyı liderlik tablosuna ekle
+        await FirebaseFirestore.instance
+            .collection('leaderboards')
+            .doc(widget.category)
+            .update({
+          user.uid: {
+            'score': userScore,
+            'username': user.displayName ?? 'Anonim'
+          }
+        });
+
+        // Tekrar sıralama yap
+        userList.add({
+          'userId': user.uid,
+          'score': userScore,
+          'username': user.displayName ?? 'Anonim'
+        });
+
+        userList.sort((a, b) => (b['score'] as int).compareTo(a['score'] as int));
+
+        // Yeni sırayı bul
+        userRank = userList.indexWhere((u) => u['userId'] == user.uid) + 1;
+      }
+
+      print("Kullanıcı sırası: $userRank, puan: $userScore");
+
+      // 5. Popup göster
       if (mounted) {
-        _showLeaderboardPopup(userRank, userScore);
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              backgroundColor: Colors.white,
+              title: Column(
+                children: [
+                  Icon(
+                    userRank == 1 ? Icons.emoji_events : Icons.star,
+                    color: userRank == 1 ? Colors.amber : Colors.blueAccent,
+                    size: 50,
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    userRank == 1 ? "Tebrikler!" : "Testi Tamamladın!",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurple,
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Bu kategorideki sıralamanız:",
+                    style: TextStyle(fontSize: 18, color: Colors.black87),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    "${userRank}. sıra",
+                    style: TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepOrange,
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    "Puanınız:",
+                    style: TextStyle(fontSize: 18, color: Colors.black87),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    "$userScore",
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text(
+                    "Harika!",
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.blueAccent,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
       }
     } catch (e) {
       print("Sıralama alınırken hata oluştu: $e");
-      // Hata durumunda direkt ana sayfaya dön
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
     }
   }
 
   void _navigateToHome() async {
-    if (isExist){
-      _showFinalResults();
+    // Tüm sorulara cevap verilmiş mi kontrolü
+    bool allAnswered = selectedAnswers.every((answer) => answer != null);
+
+    if (isExist && allAnswered && mounted) {
+      await _showFinalResults();
     }
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => MainPage()),
-    );
+
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => MainPage()),
+      );
+    }
   }
 
   @override
